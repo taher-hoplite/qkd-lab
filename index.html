@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier QKD</title>
+<style>
+:root{
+  --bg:#ffffff; --panel:#ffffff; --panel2:#f6f6f4; --ink:#1c1c1c; --muted:#7a7a76; --line:#e4e4e0;
+  --accent:#1c1c1c; --good:#1c1c1c; --bad:#a8322d; --warn:#8a8a85; --nodeText:#1c1c1c;
+}
+:root[data-theme="dark"]{
+  --bg:#161616; --panel:#161616; --panel2:#202020; --ink:#e8e8e4; --muted:#8c8c88; --line:#2e2e2e;
+  --accent:#e8e8e4; --good:#e8e8e4; --bad:#e07a74; --warn:#8c8c88; --nodeText:#e8e8e4;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px}
+.lvl{font-size:13px;color:var(--muted)}
+.sp{flex:1}
+.b{border:1px solid var(--line);background:transparent;padding:6px 12px;border-radius:6px;font-size:13.5px}
+.b:hover{border-color:var(--ink)}
+.b.pri{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.b.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.b.sm{padding:3px 9px;font-size:12.5px}
+.b:disabled{opacity:.35;cursor:default}
+.menu{position:relative}.menu .pop{display:none;position:absolute;right:0;top:112%;min-width:250px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px;z-index:30;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.menu.open .pop{display:block}
+.pop button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:5px;font-size:13.5px}
+.pop button:hover{background:var(--panel2)}.pop small{display:block;color:var(--muted)}
+#stage{flex:1;position:relative;min-height:0}
+#map{width:100%;height:100%;display:block}
+.crumb{position:absolute;left:24px;top:12px;color:var(--muted);font-size:13px;z-index:2;display:flex;gap:12px;align-items:center}
+/* carte */
+.node{cursor:pointer}
+.node text{pointer-events:none;fill:var(--nodeText);font-weight:500}
+.node .disc{fill:var(--bg);stroke:var(--ink);stroke-width:1.5}
+.node:hover .disc{fill:var(--panel2)}
+.node.done .disc{fill:var(--ink)}
+.node.done text{fill:var(--bg)}
+.edge{fill:none;stroke:var(--line);stroke-width:1.5}
+.dim{opacity:.3}
+/* panneau */
+#veil{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;z-index:10}
+#veil.on{display:block}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(720px,100%);background:var(--bg);border-left:1px solid var(--line);transform:translateX(102%);z-index:11;display:flex;flex-direction:column}
+#panel.on{transform:none}
+.ph{padding:22px 32px 10px;position:relative}
+.ph .num{color:var(--muted);font-size:13px}
+.ph h2{margin:4px 0 16px;font-size:20px;line-height:1.35;font-weight:600;padding-right:40px}
+.close{position:absolute;right:20px;top:18px}
+.steps{display:flex;gap:22px;border-bottom:1px solid var(--line)}
+.steps button{border:0;background:none;padding:6px 0 10px;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.steps button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.steps button.ok::after{content:" ·";color:var(--ink)}
+.pb{flex:1;overflow:auto;padding:20px 32px 28px}
+.pf{display:flex;justify-content:space-between;padding:14px 32px;border-top:1px solid var(--line)}
+.lead{font-size:16px;line-height:1.7;margin:0 0 18px}
+ul.k{padding-left:18px;margin:14px 0}ul.k li{margin:7px 0}
+.card{border:1px solid var(--line);border-radius:8px;padding:16px;margin:18px 0}
+.muted{color:var(--muted);font-size:13px}
+.sh{margin:22px 0 6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px;font-weight:500}
+details.dt{border-top:1px solid var(--line);padding:0}
+details.dt summary{cursor:pointer;padding:12px 0;list-style:none;display:flex;justify-content:space-between;font-size:14.5px}
+details.dt summary::after{content:"+";color:var(--muted)}details.dt[open] summary::after{content:"–"}
+details.dt p{margin:0 0 14px;line-height:1.7}
+details.dt ul{margin:0 0 14px;padding-left:18px;color:var(--muted)}details.dt a{color:var(--ink)}
+.more{margin-top:26px;border-bottom:1px solid var(--line)}
+.sub{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:14px 0 4px}
+/* widgets */
+.ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.sw{display:flex;gap:6px;align-items:center;font-size:13.5px;cursor:pointer}
+.chan{display:flex;align-items:center;gap:10px;margin:8px 0}
+.ent{border:1px solid var(--line);padding:6px 12px;border-radius:6px;font-weight:500;font-size:14px}
+.line{flex:1;height:1px;background:var(--ink);position:relative;margin:26px 4px}
+.line .eve{position:absolute;left:46%;top:-26px;font-size:13px;color:var(--muted)}
+.line .ph{position:absolute;top:-13px;left:0;font-size:20px;padding:0;opacity:0;transition:left .45s linear}
+.tblw{overflow:auto}
+table.bbt{border-collapse:collapse;width:100%;font-size:14px}
+.bbt th{text-align:left;color:var(--muted);font-weight:400;padding:5px 8px;white-space:nowrap;font-size:12.5px}
+.bbt td{text-align:center;padding:5px 4px;border:1px solid var(--line);min-width:34px}
+.bbt td.keep{background:var(--panel2)}.bbt td.drop{opacity:.3}.bbt td.err{color:var(--bad);font-weight:700}
+.out{margin-top:10px}
+.meter{height:6px;border-radius:9px;background:var(--line);position:relative;margin:12px 0}
+.meter i{display:block;height:100%;border-radius:9px;background:var(--ink)}
+.meter u{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--bad)}
+.stage{display:flex;align-items:center;gap:10px;margin:6px 0;cursor:pointer;opacity:.45}
+.stage.on{opacity:1}
+.stage .bar2{flex:1;height:26px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative}
+.stage .bar2 i{display:block;height:100%;background:var(--line)}
+.stage.on .bar2 i{background:var(--ink);opacity:.18}
+.stage .bar2 span{position:absolute;left:10px;top:3px;font-size:13px}
+.stage .n{width:78px;text-align:right;font-size:13px;color:var(--muted)}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 8px;font-size:12px;margin-right:6px}
+.dots{display:grid;grid-template-columns:repeat(40,1fr);gap:2px;margin:8px 0}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--line)}.dots i.on{background:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.rows{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;font-size:14px}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.flip{height:130px;cursor:pointer}
+.flip>div{position:relative;width:100%;height:100%}
+.flip .f,.flip .bk{position:absolute;inset:0;border-radius:8px;padding:14px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;border:1px solid var(--line)}
+.flip .bk{display:none;background:var(--panel2);font-size:13px}
+.flip.on .f{display:none}.flip.on .bk{display:flex}
+.impact{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.ic{border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center}
+.ic b{display:block;font-weight:500}.ic small{color:var(--muted);display:block;min-height:34px}
+.ic.bad{border-color:var(--bad);color:var(--bad)}.ic.mid{border-color:var(--warn)}.ic.good{border-color:var(--ink)}
+.tl{display:flex;overflow:auto;padding:26px 4px 10px}
+.tl .ev{min-width:92px;text-align:center;position:relative;cursor:pointer;padding-top:18px;font-size:13px}
+.tl .ev::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--line)}
+.tl .ev i{position:absolute;top:-5px;left:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--bg);border:1.5px solid var(--ink)}
+.tl .ev.hl i{background:var(--ink)}.tl .ev.on i{transform:scale(1.4)}
+.tl .ev b{display:block;font-weight:500}
+.cov{display:grid;gap:6px}
+.cv{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 12px;flex-wrap:wrap}
+.cv span{flex:1}.cv .fb{font-size:12.5px;color:var(--muted);flex-basis:100%}
+.cv.right{border-color:var(--ink)}.cv.wrong{border-color:var(--bad)}
+.q{font-size:17px;font-weight:500;margin:6px 0 14px}
+.opt{display:block;width:100%;text-align:left;margin:7px 0;padding:11px 14px;background:transparent;border:1px solid var(--line);border-radius:8px}
+.opt:hover:not([disabled]){border-color:var(--ink)}
+.opt.ok{border-color:var(--ink);background:var(--panel2)}.opt.ko{border-color:var(--bad)}
+.why{margin-top:12px;padding:2px 0 2px 14px;border-left:2px solid var(--ink)}
+.dotsq{display:flex;gap:6px;margin-bottom:8px}.dotsq i{width:22px;height:3px;background:var(--line)}.dotsq i.d{background:var(--ink)}.dotsq i.c{background:var(--muted)}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.tools input[type=text]{flex:1;min-width:150px;background:transparent;border:1px solid var(--line);color:var(--ink);padding:5px 10px;border-radius:6px;font:inherit;font-size:13.5px}
+#cv{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;touch-action:none;user-select:none}
+textarea{width:100%;min-height:220px;resize:vertical;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:14px;font:15px/1.65 system-ui,sans-serif;outline:none}
+textarea:focus{border-color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.thumbs div{position:relative}.thumbs img{height:90px;border-radius:6px;border:1px solid var(--line)}
+.thumbs button{position:absolute;top:2px;right:2px;border:0;border-radius:50%;width:20px;height:20px;background:rgba(0,0,0,.6);color:#fff;font-size:11px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px;font-size:13.5px;opacity:0;pointer-events:none;z-index:40}
+#toast.on{opacity:1}
+#gsearch{width:100%;background:transparent;border:1px solid var(--line);color:var(--ink);padding:8px 12px;border-radius:6px;font:inherit;margin-bottom:10px}
+.gi{padding:9px 0;border-bottom:1px solid var(--line)}.gi b{font-weight:600}
+#bg,#cf,#tip{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>QKD</h1>
+  <div class="lvl" id="lvtxt"></div>
+  <div class="sp"></div>
+  <button class="b" id="gbtn">Glossaire</button>
+  <button class="b" id="theme">Thème</button>
+  <div class="menu" id="xmenu"><button class="b pri">Exporter ▾</button><div class="pop">
+    <button data-a="md">Mes notes (Markdown)<small>Texte, images et schémas, numérotation du plan</small></button>
+    <button data-a="json">Sauvegarde complète (.json)</button>
+    <button data-a="import">Restaurer une sauvegarde…</button></div></div>
+</header>
+<div id="stage">
+  <div class="crumb"><span id="crumb">Carte du sujet</span><button class="b sm" id="collapse">Tout replier</button></div>
+  <svg id="map"></svg>
+</div>
+<div id="veil"></div>
+<aside id="panel"></aside>
+<div id="toast"></div>
+<input type="file" id="fimg" accept="image/*" hidden><input type="file" id="fjson" accept="application/json" hidden>
+
+<script>
+/* ====== CONTENU APPROFONDI (ex contenu.js) ====== */
+/* Contenu approfondi de l'Atelier QKD (chargé par index.html).
+   d : blocs « En détail » [titre, texte]   x : exemple concret   m : idées reçues [mythe, réalité]
+   r : pour approfondir (références à retrouver)   q2 : questions de quiz supplémentaires
+   À vérifier avant de citer dans le livrable : chiffres, dates et positions des agences. */
+"use strict";
+
+const DEEP={
+"1.1.1":{d:[["Pourquoi Shor casse RSA","RSA publie n = p × q : sa sécurité vient de la difficulté de retrouver p et q. L'algorithme de Shor trouve la période d'une fonction modulaire grâce à la transformée de Fourier quantique, ce qui donne p et q en temps polynomial. Pour RSA-2048, Gidney et Ekerå estimaient en 2019 environ 20 millions de qubits bruités pour 8 heures de calcul ; Gidney (2025) descend à moins d'un million de qubits pour moins d'une semaine, sous des hypothèses précises (grille 2D, taux d'erreur de 0,1 %). Aucune machine de cette taille n'existe aujourd'hui."],["Ce qui est menacé, ce qui ne l'est pas","Menacés : l'échange de clés (RSA, Diffie-Hellman, ECDH) et les signatures (RSA, ECDSA). Peu touchés : le chiffrement symétrique (AES) et le hachage (SHA-2, SHA-3), à condition de prendre des clés de 256 bits."]],
+ x:"Une connexion HTTPS : l'échange de clés (ECDH) et le certificat du site (signature) sont vulnérables à Shor, alors que le chiffrement des données (AES) l'est beaucoup moins.",
+ m:[["« Le quantique casse tout le chiffrement »","Non : il menace surtout la cryptographie asymétrique. AES-256 et SHA-256 restent solides."]],
+ r:["P. Shor (1994), algorithmes de factorisation et de logarithme discret sur ordinateur quantique","Gidney et Ekerå (2019) : estimation des ressources pour factoriser RSA-2048","NIST IR 8547 : transition vers la cryptographie post-quantique"],
+ q2:[["Parmi ces éléments, lequel est le moins touché par l'ordinateur quantique ?",["Échange de clés ECDH","Signature ECDSA","Chiffrement AES-256","Échange de clés RSA"],2,"Le chiffrement symétrique n'est qu'affaibli par Grover."]]},
+"1.1.2":{d:[["Les trois grandeurs de Mosca","X : combien de temps les données doivent rester secrètes (un dossier médical : 30 ans et plus). Y : combien de temps pour migrer (inventaire, tests, déploiement : souvent 5 à 10 ans). Z : le moment où une machine capable de casser RSA ou ECC existera, qui est inconnu, d'où les scénarios."],["Pourquoi attendre est risqué","Les communications interceptées aujourd'hui se stockent à très bas coût. La migration est longue (matériel, protocoles, PKI, partenaires). Même si Z est incertain, X et Y sont connus pour votre organisation."]],
+ x:"Un contrat industriel confidentiel pendant 25 ans (X = 25) avec une migration de 8 ans (Y = 8) : même si la machine n'arrive que dans 30 ans, X + Y = 33 est supérieur à Z.",
+ m:[["« On verra quand la machine existera »","Il sera trop tard pour les données déjà capturées."]],
+ r:["M. Mosca (2018), Cybersecurity in an era with quantum computers","NIST IR 8547","Avis de l'ANSSI sur la migration vers la cryptographie post-quantique"],
+ q2:[["Quelle donnée est la plus urgente à protéger contre « harvest now, decrypt later » ?",["Un flyer marketing","Un dossier médical à conserver 30 ans","Un cache de navigateur","Un journal de test"],1,"C'est celle dont la durée de confidentialité est la plus longue."]]},
+"1.2.1":{d:[["D'où vient la promesse","La QKD repose sur de vraies preuves de sécurité (Shor et Preskill, 2000, pour BB84), dans un modèle où les appareils se comportent exactement comme spécifié. Les discours commerciaux ont retenu « sécurité garantie par la physique » en oubliant cette hypothèse."],["L'écart entre modèle et réalité","Sources qui ne sont pas des photons uniques parfaits, détecteurs avec failles, pertes, synchronisation imparfaite. Chaque écart est une surface d'attaque."]],
+ x:"Un fournisseur annonce un « chiffrement inviolable ». En réalité, il vend un lien de distribution de clés, à associer à AES, à une authentification et à un équipement évalué.",
+ m:[["« La physique rend la QKD inviolable »","Le protocole idéal l'est. L'équipement réel ne l'est pas."]],
+ r:["P. Shor et J. Preskill (2000), preuve simple de sécurité de BB84","Scarani et al. (2009), The security of practical quantum key distribution, Reviews of Modern Physics"],
+ q2:[["La preuve de sécurité de BB84 suppose…",["Des appareils conformes au modèle","Un attaquant limité en calcul","Un canal chiffré","Une distance nulle"],0,"C'est précisément l'hypothèse que les équipements réels ne respectent qu'imparfaitement."]]},
+"1.2.2":{d:[["Sécurité inconditionnelle : le sens précis","« Inconditionnelle » signifie qu'elle ne dépend d'aucune hypothèse de calcul. Elle repose en revanche sur : les lois de la mécanique quantique, des appareils conformes au modèle, un canal classique authentifié et un bon générateur d'aléa."],["Et le masque jetable ?","Associée au masque jetable (clé aussi longue que le message, jamais réutilisée), la QKD donnerait un chiffrement de sécurité parfaite. En pratique, les débits de clé sont trop faibles : on utilise donc plutôt AES avec les clés produites."]],
+ x:"Deux sites échangent une clé de 256 bits par QKD, puis chiffrent leur trafic en AES-256 avec cette clé, renouvelée toutes les quelques minutes.",
+ m:[["« Sécurité absolue »","Elle reste conditionnée aux quatre hypothèses ci-dessus."]],
+ r:["C. Bennett et G. Brassard (1984)","Gisin et al. (2002), Quantum cryptography, Reviews of Modern Physics"],
+ q2:[["Que faut-il aussi supposer pour la sécurité inconditionnelle ?",["Rien de plus","Des appareils conformes et un canal classique authentifié","Un ordinateur quantique","Une fibre de 1 km"],1,"Sans authentification, un homme du milieu casse le protocole."]]},
+"2.1.1":{d:[["Les quatre états","Base rectiligne (+) : 0° pour le bit 0, 90° pour le bit 1. Base diagonale (×) : 45° pour le bit 0, 135° pour le bit 1. Un photon polarisé à 0° et mesuré en base × donne 45° ou 135°, avec 50 % de chances chacun."],["Pourquoi le hasard est essentiel","Les choix de bits et de bases d'Alice, et de bases de Bob, doivent être imprévisibles (générateur quantique d'aléa). Un biais donne de l'information à Ève."],["Variantes à connaître","BB84 avec états leurres (decoy states) contre l'attaque PNS ; E91 et BBM92 fondés sur l'intrication ; CV-QKD avec lumière cohérente et détection homodyne ; COW et DPS à codage temporel."]],
+ x:"Alice tire le bit 1 et la base ×. Elle envoie un photon à 135°. Si Bob mesure en +, il obtient 0 ou 1 au hasard. S'il mesure en ×, il obtient 1 à coup sûr.",
+ m:[["« Un photon porte une information qu'on lit simplement »","On ne peut lire qu'une base à la fois : mesurer détruit l'autre information."]],
+ r:["Bennett et Brassard (1984), Quantum cryptography: public key distribution and coin tossing","Gisin et al. (2002)"],
+ q2:[["Quelle variante protège contre l'attaque par séparation du nombre de photons (PNS) ?",["Les états leurres (decoy)","E91","CV-QKD","COW"],0,"Les états leurres permettent de détecter une division des impulsions."]]},
+"2.1.2":{d:[["Le non-clonage en deux lignes","Si Ève pouvait copier un état inconnu, elle garderait la copie et laisserait passer l'original : indétectable. Le théorème interdit toute copie parfaite d'un état inconnu. Ève ne peut que mesurer, et mesurer perturbe."],["D'où viennent les 25 %","Ève mesure dans une base aléatoire : une fois sur deux, elle choisit la mauvaise. Dans ce cas, Bob (qui, lui, utilise la bonne base d'Alice) obtient un bit faux une fois sur deux. Donc 1/2 × 1/2 = 25 % d'erreurs."],["Bruit ou espion ?","Le QBER d'une vraie fibre est de quelques pour cent. Au-delà du seuil, on suppose une attaque. Conséquence : on peut empêcher la production de clé simplement en perturbant la ligne (déni de service)."]],
+ x:"Sur 1000 bits tamisés avec Ève active, on s'attend à environ 250 erreurs. Sans Ève, quelques dizaines tout au plus, dues au bruit.",
+ m:[["« Ève peut copier le photon et le renvoyer »","Interdit par le théorème de non-clonage."],["« Un QBER nul prouve qu'il n'y a pas d'espion »","Non : une attaque d'implémentation peut ne créer aucune erreur."]],
+ r:["Wootters et Zurek (1982), A single quantum cannot be cloned","Gisin et al. (2002)"],
+ q2:[["Pourquoi 25 % d'erreurs avec « intercepter et renvoyer » ?",["Mauvaise base 1/2 × erreur 1/2","Pertes de la fibre","Seuil du NIST","Choix d'Alice"],0,"Deux hasards successifs d'un demi."]]},
+"2.2.1":{d:[["Les quatre post-traitements","1. Tamisage (sifting). 2. Estimation du QBER sur un échantillon. 3. Réconciliation (protocoles Cascade, LDPC) pour corriger les erreurs. 4. Amplification de confidentialité par hachage universel. Le tout avec une authentification des messages classiques (type Wegman-Carter)."],["Le matériel d'un lien","Côté Alice : laser atténué ou source à photons uniques, modulateur. Côté Bob : détecteurs (APD InGaAs, ou SNSPD supraconducteurs). Électronique de synchronisation et de post-traitement."],["Cohabiter avec le trafic","Un canal quantique sur la même fibre qu'un trafic classique est perturbé par le bruit (diffusion Raman), d'où l'usage fréquent d'une fibre noire."]],
+ x:"Deux modules QKD reliés par une fibre noire de 40 km produisent des clés. Leur réseau de supervision, lui, tourne sur un lien IP classique authentifié.",
+ m:[["« Le canal classique doit être secret »","Non : il est public, mais il doit être authentifié."]],
+ r:["Séries de normes ETSI GS QKD (cas d'usage, architecture, interfaces)","ITU-T Y.3800 : vue d'ensemble des réseaux QKD"],
+ q2:[["Une authentification de type Wegman-Carter sert à…",["Authentifier les messages du canal classique","Générer les photons","Détecter les photons","Corriger la fibre"],0,"Elle garantit que les échanges publics ne sont pas altérés."]]},
+"2.2.2":{d:[["La chaîne complète","Module QKD, puis clé, puis gestionnaire de clés (KMS), puis chiffreur (AES-GCM, MACsec, IPsec), puis trafic chiffré. L'interface entre le KMS et les applications est décrite par ETSI GS QKD 014."],["Où se place la PQC ?","La PQC remplace l'échange de clés et les signatures par des algorithmes logiciels. La QKD est une autre façon de livrer des clés symétriques. Elles peuvent coexister, mais la PQC couvre aussi l'authentification et les signatures, ce que la QKD ne fait pas."]],
+ x:"Deux data centers : modules QKD, puis clés, puis routeurs chiffrants MACsec en AES-256 sur le lien.",
+ m:[["« Avec la QKD, plus besoin d'algorithme de chiffrement »","Il faut toujours AES ou un équivalent pour chiffrer les données."]],
+ r:["ETSI GS QKD 014 : interface applicative de livraison de clés"],
+ q2:[["Qu'est-ce qui consomme la clé produite par la QKD ?",["Un chiffreur symétrique","Les photons","Le laser","La fibre"],0,"AES, MACsec ou IPsec par exemple."]]},
+"3.1.1":{d:[["Ce que les pilotes ont montré","DARPA Quantum Network : présenté comme le premier réseau QKD, opérationnel en laboratoire en octobre 2003, puis déployé sur fibre noire à Cambridge et Boston en 2004. SECOQC (projet 2004-2008, 41 organisations) : réseau à relais de confiance, avec reroutage et démonstrations de téléphonie et de visioconférence. Tokyo QKD Network : six systèmes QKD différents en maillage, visioconférence sécurisée sur 45 km. SwissQuantum : trois nœuds à Genève, exploités une vingtaine de mois, avec des interruptions dues surtout à des causes externes (coupures de courant, climatisation)."],["Ce qu'ils ont aussi révélé","Des débits de clé modestes, une intégration complexe, une maintenance spécialisée. Ces constats sont des ordres de grandeur à confronter à vos propres mesures de R&D."]],
+ x:"Relier plusieurs bâtiments d'une même ville avec des modules QKD de plusieurs fabricants pour tester l'interopérabilité.",
+ m:[["« Les pilotes prouvent que c'est prêt »","Ils prouvent la faisabilité, pas la rentabilité ni le passage à l'échelle."]],
+ r:["Peev et al. (2009), The SECOQC quantum key distribution network in Vienna, New Journal of Physics","Sasaki et al. (2011), Field test of QKD in the Tokyo QKD Network, Optics Express"],
+ q2:[["Que prouve un réseau pilote ?",["La rentabilité","La faisabilité technique en conditions réelles","L'absence de failles","La portée illimitée"],1,"C'est un démonstrateur."]]},
+"3.1.2":{d:[["La dorsale Pékin-Shanghai","Environ 2 032 km, 32 nœuds de confiance, reliant Pékin, Jinan, Hefei et Shanghai, inaugurée le 29 septembre 2017. Si l'un des 32 nœuds est compromis, la clé de bout en bout l'est aussi."],["Micius","Satellite lancé en 2016 : QKD satellite-sol jusqu'à environ 1 200 km (Liao et al., Nature, 2017), puis réseau intégré espace-sol d'environ 4 600 km, dont environ 2 600 km pour le segment satellite (Chen et al., Nature, 2021)."]],
+ x:"Une clé établie par Micius entre deux stations de villes éloignées : le satellite connaît chaque clé, puisqu'il sert de relais de confiance.",
+ m:[["« Le satellite résout tout »","Fenêtres de visibilité courtes, météo, faibles débits, et le satellite lui-même est un nœud de confiance."]],
+ r:["Liao et al. (2017), Satellite-to-ground QKD, Nature","Chen et al. (2021), An integrated space-to-ground quantum communication network over 4,600 km, Nature"],
+ q2:[["Le satellite Micius est lui-même…",["Un répéteur quantique","Un nœud de confiance","Un amplificateur","Un détecteur au sol"],1,"Il connaît les clés qu'il relaie."]]},
+"3.2.1":{d:[["Conditions favorables","Distance inférieure à ~80 km, fibre noire disponible, deux sites fixes, besoin de confidentialité à très long terme, budget. Exemples : réplication de données entre data centers d'un même acteur, liaison entre deux sites gouvernementaux."],["Alternatives à comparer","Chiffreurs réseau avec PQC hybride, ou clés symétriques AES-256 pré-partagées et renouvelées par porteur physique : souvent suffisantes, et déjà résistantes au quantique."]],
+ x:"Un hébergeur relie ses deux data centers de la même métropole. Il compare un lien QKD avec un chiffrement MACsec dont les clés sont renouvelées par PQC.",
+ m:[["« Sans QKD, un lien fixe ne peut pas être protégé du quantique »","Faux : AES-256 et la PQC y répondent."]],
+ r:["EuroQCI : documents de cadrage de la Commission européenne"],
+ q2:[["Quelle alternative simple résiste déjà au quantique sur un lien fixe ?",["RSA-1024","AES-256 avec clés renouvelées","Aucune","Un VPN sans clé"],1,"La cryptographie symétrique forte est peu touchée."]]},
+"3.2.2":{d:[["Initiatives publiques","EuroQCI : infrastructure européenne de communication quantique pilotée par la Commission avec les 27 États membres (volet terrestre) et l'ESA (volet spatial), intégrée à IRIS². Première phase de déploiement lancée en janvier 2023, mise en service visée vers 2027 (à vérifier). Réseaux nationaux chinois. Programmes de défense et de recherche aux États-Unis, au Japon, en Corée et au Royaume-Uni."],["Un enjeu de souveraineté","Au-delà de la technique, la QKD est un levier industriel et diplomatique : maîtrise de la filière (sources, détecteurs, satellites)."]],
+ x:"Un ministère finance un réseau QKD entre administrations pour développer une filière industrielle nationale, en plus de l'usage sécurité.",
+ m:[["« Si un État le finance, c'est que c'est la meilleure solution »","Le financement peut répondre à un objectif industriel ou de recherche, pas seulement à un besoin de sécurité."]],
+ r:["EuroQCI (Commission européenne et agence spatiale européenne)"],
+ q2:[["Un déploiement financé par l'État prouve-t-il la supériorité de la QKD ?",["Oui","Non : il peut répondre à des objectifs industriels et de souveraineté"],1,"Distinguer financement et efficacité sécuritaire."]]},
+"4.1.1":{d:[["Calcul rapide en décibels","Atténuation : 0,2 dB par km. Transmission = 10^(−0,2 × d / 10). À 50 km : 10 dB, soit 10 %. À 100 km : 20 dB, soit 1 %. À 200 km : 40 dB, soit 0,01 %."],["Le vrai mur : le bruit","Au-delà d'une certaine distance, le signal devient comparable aux comptages d'obscurité des détecteurs : le QBER explose et plus aucune clé ne peut être extraite."],["Records et protocoles","Le protocole « twin-field » (TF-QKD) a atteint 1 002 km de fibre en laboratoire (Liu et al., 2023), avec un débit de l'ordre de 10⁻¹² bit par impulsion, soit quasiment aucune clé utile."],["Une limite fondamentale","Sans répéteur quantique, le débit maximal d'une liaison est borné en fonction de la transmission (borne PLOB, 2017) : environ 1,44 × η bit par usage du canal pour une forte perte, η étant la transmission. Aucune amélioration technologique ne contourne cette borne."]],
+ x:"À 100 km, sur 1 million de photons envoyés, environ 10 000 arrivent. Après tamisage, correction et amplification, il reste beaucoup moins de bits de clé.",
+ m:[["« Une meilleure fibre règle le problème »","L'atténuation minimale de la silice est d'environ 0,16 dB/km : le gain est marginal."]],
+ r:["Pirandola et al. (2017), Fundamental limits of repeaterless quantum communications","Lucamarini et al. (2018), Overcoming the rate-distance limit of QKD, Nature"],
+ q2:[["Qu'est-ce qui limite réellement la distance, en pratique ?",["Le prix de la fibre","Les pertes qui noient le signal dans le bruit des détecteurs","La polarisation","Le système d'exploitation"],1,"Le QBER explose quand le signal rejoint le bruit."]]},
+"4.1.2":{d:[["Le modèle de menace","Un nœud de confiance est une zone à haute sécurité : accès physique contrôlé, détection d'intrusion, journalisation. Mais un attaquant interne, la chaîne d'approvisionnement ou une compromission logicielle suffisent à le compromettre."],["Réduire le risque sans le supprimer","Chemins multiples avec partage de secret (la clé est répartie sur plusieurs routes), audit des nœuds. On réduit la surface, mais l'hypothèse de confiance reste."],["Pourquoi pas de répéteur quantique ?","Il faudrait des mémoires quantiques et de la correction d'erreurs quantique à grande échelle. Ces briques restent au stade du laboratoire."]],
+ x:"Sur une chaîne de 4 nœuds, la clé de bout en bout est relayée de nœud en nœud, chiffrée uniquement entre voisins. À chaque nœud, elle apparaît en clair en mémoire.",
+ m:[["« Les nœuds de confiance sont un détail technique »","Ils réintroduisent un modèle de confiance classique et ruinent l'argument de sécurité par la physique."]],
+ r:["Briegel et al. (1998), Quantum repeaters for communication","ETSI GS QKD 003 et 004"],
+ q2:[["Que fait le partage de secret sur plusieurs chemins ?",["Il supprime les nœuds","Il oblige l'attaquant à compromettre plusieurs chemins","Il augmente la portée","Il chiffre les photons"],1,"Il réduit le risque, sans le supprimer."]]},
+"4.2.1":{d:[["Les postes de coût","Équipements (une paire de modules par lien), fibre noire (location ou génie civil), salles sécurisées pour les nœuds de confiance, supervision et maintenance, formation, certification. Des détecteurs supraconducteurs (SNSPD) demandent en plus de la cryogénie."],["Comment le comparer","En coût par bit de clé sécurisé et en coût total sur 10 ans, face à une migration PQC logicielle (mises à jour, tests, formation). Utilisez vos propres chiffres de R&D."]],
+ x:"Pour un seul lien entre deux sites : modules, fibre dédiée, salle sécurisée à chaque extrémité, contrat de maintenance. La mise à jour d'une bibliothèque TLS n'a rien de comparable.",
+ m:[["« Le prix baissera comme celui des puces »","Possible pour les modules, mais la fibre dédiée et l'exploitation resteront."]],
+ r:["Comparatifs de coût dans les rapports d'agences (NSA, NCSC, ANSSI/BSI)"],
+ q2:[["Quel poste de coût ne baissera pas avec la miniaturisation des modules ?",["La fibre dédiée et l'exploitation","Le logiciel","Les puces","Les lasers"],0,"Ils dépendent de l'infrastructure physique."]]},
+"4.2.2":{d:[["Le maillage","Relier N sites demande N(N−1)/2 liens. Un réseau avec nœuds de confiance réduit le nombre de liens, mais élargit la surface de confiance."],["Ce que la QKD ne couvre pas","Utilisateurs mobiles, sites distants, clients web, cloud public, objets connectés : aucun lien fibre dédié n'est possible."]],
+ x:"Une entreprise de 20 sites devrait gérer jusqu'à 190 liens dédiés en maillage complet, alors qu'une solution logicielle s'installe par une mise à jour.",
+ m:[["« On peut déjà faire un Internet quantique »","Seulement des liaisons dédiées ou des réseaux expérimentaux à nœuds de confiance."]],
+ r:["ITU-T Y.3800 et normes associées"],
+ q2:[["Pourquoi la QKD ne couvre-t-elle pas le mobile ?",["Pas de liaison fibre dédiée","Trop rapide","Trop sécurisée","Pas de photons"],0,"Le principe repose sur un lien physique dédié."]]},
+"4.3.1":{d:[["Attaques d'implémentation célèbres","Aveuglement des détecteurs (Lydersen et al., Nature Photonics, 2010, démontré sur deux systèmes commerciaux) : une lumière intense force les détecteurs à se comporter comme des détecteurs classiques, qu'Ève contrôle sans créer d'erreurs. PNS : si la source émet plusieurs photons, Ève en prélève un. Cheval de Troie : Ève sonde l'équipement. Contre-mesures : états leurres, QKD indépendante des appareils de mesure (MDI-QKD), correctifs."],["L'authentification","La première utilisation exige un secret pré-partagé. Ensuite, une partie de la clé produite renouvelle ce secret."],["La certification","Il existe des travaux de normalisation (ISO/IEC 23837, critères communs), mais peu d'équipements évalués."]],
+ x:"Un détecteur aveuglé par une lumière intense reçoit les ordres d'Ève : il clique quand elle le veut, sans générer d'erreur détectable.",
+ m:[["« La QKD est inattaquable parce qu'elle est quantique »","Les attaques visent les composants réels, pas les lois de la physique."]],
+ r:["Lydersen et al. (2010), Hacking commercial quantum cryptography systems by tailored bright illumination, Nature Photonics","Xu et al. (2020), Secure QKD with realistic devices, Reviews of Modern Physics","Lo, Curty et Qi (2012), MDI-QKD"],
+ q2:[["Que permet la MDI-QKD ?",["D'être indépendante des failles des détecteurs","D'augmenter la portée à l'infini","De chiffrer les données","D'éviter l'authentification"],0,"Elle supprime la dépendance aux détecteurs de mesure."]]},
+"5.1.1":{d:[["NSA","La page de la NSA indique qu'elle ne recommande pas la QKD ni la cryptographie quantique pour protéger les systèmes de sécurité nationale, tant que certaines limites techniques ne sont pas levées. Elle privilégie la cryptographie résistante au quantique. Le détail des limites (coût, matériel spécialisé, authentification, attaques d'implémentation, déni de service) vient de sources secondaires : à relire dans le document d'origine (2020)."],["NCSC (Royaume-Uni)","Livre blanc « Quantum networking technologies » (5 août 2025), qui met à jour celui de 2020 : le NCSC indique qu'il ne soutiendra pas l'usage de la QKD pour des applications gouvernementales ou militaires. Raisons : la PQC est la meilleure parade ; la QKD n'apporte pas l'authentification ; l'associer à des clés symétriques pré-partagées ne passe pas à l'échelle ; l'intégration ajoute de la complexité et de la surface d'attaque."],["ANSSI, BSI et autres agences","« Position Paper on Quantum Key Distribution » (janvier 2024) : l'ANSSI, le BSI, l'agence néerlandaise NLNCSA et l'autorité suédoise de sécurité des communications jugent la QKD limitée fonctionnellement, adaptée seulement à des cas de niche, de maturité de sécurité insuffisante et nécessitant une infrastructure dédiée. Ils recommandent de donner la priorité à la PQC."]],
+ x:"Dans le livrable : citer chaque agence avec le titre exact du document, sa date et le lien, plutôt qu'une paraphrase de mémoire.",
+ m:[["« Les agences rejettent la physique quantique »","Elles jugent la technologie inadaptée comme solution générale, pas fausse."]],
+ r:["NSA : Quantum Key Distribution (QKD) and Quantum Cryptography, FAQ","NCSC : Quantum security technologies, livre blanc (2020)","ANSSI, BSI, NLNCSA : positions sur la QKD (2020 et 2024)"],
+ q2:[["Que doit contenir une citation d'agence dans le livrable ?",["Une paraphrase de mémoire","Le titre exact, la date et la source","Rien","Un avis personnel"],1,"Pour rester vérifiable."]]},
+"5.1.2":{d:[["Trois arguments récurrents","1. Authentification : la QKD en dépend, et la PQC y suffit. 2. Immaturité et certification : peu de normes d'évaluation, attaques d'implémentation. 3. Rapport coût-bénéfice : trop cher et trop limité pour des gains que la PQC apporte déjà."],["Une nuance utile","Les agences ne disent pas que la physique est fausse. Elles jugent la technologie inadaptée comme solution générale. Certaines admettent la poursuite de recherches et des usages de niche."]],
+ x:"On peut rédiger : « Les agences convergent vers la PQC comme réponse prioritaire. La QKD, au mieux complémentaire, reste un sujet de recherche et de veille. »",
+ m:[["« Les agences interdisent la QKD »","Elles ne l'interdisent pas : elles ne la recommandent pas."]],
+ r:["Positions de la NSA, du NCSC, de l'ANSSI et du BSI (voir 5.1.1)"],
+ q2:[["Quel est l'argument commun le plus structurant ?",["La QKD est trop lente à écrire","La PQC apporte déjà la protection voulue avec moins de contraintes","La physique quantique est fausse","La fibre est chère"],1,"C'est le rapport coût-bénéfice."]]},
+"5.2.1":{d:[["Les familles mathématiques","Réseaux euclidiens (ML-KEM, ML-DSA) : problèmes LWE et MLWE. Fonctions de hachage (SLH-DSA). Codes correcteurs (HQC, Classic McEliece)."],["Le processus du NIST","Appel en 2016, plusieurs tours d'évaluation, premières sélections en 2022 (Kyber, Dilithium, Falcon, SPHINCS+), FIPS 203, 204 et 205 publiés le 13 août 2024, FN-DSA (Falcon, FIPS 206) encore en projet, HQC sélectionné en mars 2025 comme algorithme de secours pour l'échange de clés (NIST IR 8545)."],["L'hybride déjà déployé","Combiner classique et PQC pendant la transition : TLS 1.3 avec X25519MLKEM768 est déjà utilisé par les navigateurs."]],
+ x:"Un navigateur moderne et un serveur négocient aujourd'hui un échange de clés hybride X25519 + ML-KEM sans que l'utilisateur ne remarque rien.",
+ m:[["« La PQC n'est pas prête »","Les standards existent depuis 2024 et des déploiements sont en cours."]],
+ r:["NIST FIPS 203, 204, 205 (2024)","NIST IR 8547","Annonce NIST de la sélection de HQC (2025)"],
+ q2:[["Quelle famille mathématique repose sur les fonctions de hachage ?",["ML-KEM","SLH-DSA","HQC","ML-DSA"],1,"SLH-DSA, ex-SPHINCS+."]]},
+"5.2.2":{d:[["Où ça se change","TLS, VPN (IPsec, WireGuard), SSH, PKI et certificats, signature de code, messagerie, HSM. La plupart des changements sont des mises à jour de bibliothèques et de configuration."],["Ce qui coûte quand même","Inventaire, tests d'interopérabilité, taille des clés et signatures (une signature ML-DSA fait de l'ordre de 2,4 à 4,6 Ko), HSM compatibles, formation, partenaires."]],
+ x:"Mettre à jour une bibliothèque TLS et une configuration serveur pour activer l'échange hybride, sans acheter un seul équipement.",
+ m:[["« La PQC est gratuite »","Elle est logicielle, mais la migration demande du temps, des tests et de la coordination."]],
+ r:["Guides de migration PQC de l'ANSSI et du BSI","NIST SP 1800-38 (migration vers la PQC)"],
+ q2:[["Quel est le principal surcoût de la PQC ?",["Du matériel dédié","Des tailles de clés et signatures plus grandes","Une fibre noire","Des photons uniques"],1,"Impact sur la bande passante, les certificats et les performances."]]},
+"6.1":{d:[["Le bilan en trois axes","Technique : portée, débit, nœuds de confiance, attaques d'implémentation. Économique : coût par lien, absence de passage à l'échelle. Stratégique : position des agences, existence d'une alternative logicielle standardisée."],["Ce qui reste valable","Compréhension fine des enjeux quantiques, veille, réseau de contacts, capacité à évaluer des offres commerciales."],["Critères de réouverture","Répéteurs quantiques viables, équipements certifiés, changement de position des agences, baisse majeure des coûts, besoin spécifique de niche."]],
+ x:"Formulation possible : « La QKD n'est pas retenue pour un déploiement, mais le sujet est placé sous veille avec des critères de réouverture explicites. »",
+ m:[["« Abandonner, c'est avoir échoué »","Une R&D qui conclut proprement sur une impasse est une réussite : elle évite un investissement coûteux."]],
+ r:["Synthèse de vos propres travaux de R&D (à joindre au livrable)"],
+ q2:[["Quel élément pourrait justifier de rouvrir le sujet QKD ?",["Un répéteur quantique industriel","Une publicité","Un nouveau logo","Aucun"],0,"Il lèverait le problème des nœuds de confiance et de la portée."]]},
+"6.2":{d:[["Une feuille de route type","0 à 6 mois : inventaire (CBOM), gouvernance, sensibilisation. 6 à 18 mois : pilotes hybrides sur les flux à longue durée de vie. 18 à 36 mois : généralisation, PKI PQC, exigence de crypto-agilité dans les achats. En continu : veille."],["Indicateurs de suivi","Part des flux inventoriés, part des flux protégés en hybride, part des fournisseurs conformes, jalons de migration atteints. À adapter à votre organisation."]],
+ x:"Un premier pilote : activer l'échange de clés hybride sur la passerelle VPN entre deux sites, mesurer l'impact, puis étendre.",
+ m:[["« Il faut tout migrer d'un coup »","Non : on priorise par durée de confidentialité et on avance par vagues."]],
+ r:["Guides de migration de l'ANSSI, du BSI et du NIST (NCCoE)"],
+ q2:[["Comment priorise-t-on la migration ?",["Au hasard","Par durée de confidentialité des données","Par ordre alphabétique","Par taille des fichiers"],1,"C'est le sens de l'inégalité de Mosca."]]}
+};
+
+const SRC={
+"1.1.1":[["Gidney (2025), How to factor 2048 bit RSA integers with less than a million noisy qubits","https://arxiv.org/abs/2505.15917"],["Gidney et Ekerå (2019), 20 millions de qubits bruités, 8 heures","https://arxiv.org/abs/1905.09749"]],
+"1.1.2":[["NIST IR 8547 (projet initial, 12 novembre 2024)","https://csrc.nist.gov/pubs/ir/8547/ipd"]],
+"3.1.1":[["Peev et al., SECOQC (Vienne), New J. Phys. 2009","https://arxiv.org/abs/0804.0122"],["Elliott et al., DARPA Quantum Network","https://arxiv.org/abs/quant-ph/0503058"],["Sasaki et al., Tokyo QKD Network, Optics Express 2011","https://arxiv.org/abs/1103.3566"],["Stucki et al., SwissQuantum, New J. Phys. 2011","https://arxiv.org/abs/1203.4940"]],
+"3.1.2":[["Physics World : réseau quantique de 4 600 km en Chine (Nature, 2021)","https://physicsworld.com/a/quantum-cryptography-network-spans-4600-km-in-china/"]],
+"3.2.2":[["Commission européenne : EuroQCI","https://digital-strategy.ec.europa.eu/en/policies/european-quantum-communication-infrastructure-euroqci"]],
+"4.1.1":[["Pirandola et al., borne PLOB, Nature Communications 2017","https://arxiv.org/abs/1510.08863"],["Liu et al., TF-QKD sur 1000 km, 2023","https://arxiv.org/abs/2303.15795"]],
+"4.3.1":[["Lydersen et al., aveuglement de détecteurs, Nature Photonics 2010","https://arxiv.org/abs/1008.4593"]],
+"5.1.1":[["NSA : ressources cybersécurité post-quantique","https://www.nsa.gov/Cybersecurity/Post-Quantum-Cybersecurity-Resources/"],["NCSC : Quantum networking technologies (5 août 2025)","https://www.ncsc.gov.uk/whitepaper/quantum-networking-technologies"],["NCSC : Quantum security technologies (2020)","https://www.ncsc.gov.uk/paper/quantum-security-technologies"],["ANSSI : Position Paper on Quantum Key Distribution (janvier 2024)","https://cyber.gouv.fr/en/publications/jointly-led-international-publications/position-paper-on-quantum-key-distribution/"],["BSI : Position Paper on QKD","https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Crypto/Quantum_Positionspapier.html"]],
+"5.1.2":[["ANSSI : Position Paper on QKD (2024)","https://cyber.gouv.fr/en/publications/jointly-led-international-publications/position-paper-on-quantum-key-distribution/"],["NCSC : Quantum networking technologies (2025)","https://www.ncsc.gov.uk/whitepaper/quantum-networking-technologies"]],
+"5.2.1":[["NIST FIPS 203 (ML-KEM)","https://csrc.nist.gov/pubs/fips/203/final"],["NIST FIPS 204 (ML-DSA)","https://csrc.nist.gov/pubs/fips/204/final"],["NIST FIPS 205 (SLH-DSA)","https://csrc.nist.gov/pubs/fips/205/final"],["NIST IR 8545 (sélection de HQC)","https://csrc.nist.gov/pubs/ir/8545/final"]]
+};const GLOSS={
+"QKD":"Quantum Key Distribution : distribution quantique de clés. Produit une clé secrète partagée via des photons.",
+"BB84":"Premier protocole de QKD (Bennett et Brassard, 1984), avec 2 bases et 4 états de polarisation.",
+"QBER":"Quantum Bit Error Rate : proportion d'erreurs sur les bits tamisés. Une valeur trop élevée trahit une écoute ou un bruit excessif.",
+"non-clonage":"Théorème : un état quantique inconnu ne peut pas être copié parfaitement.",
+"nœuds de confiance":"Relais intermédiaires d'un réseau QKD longue distance qui voient la clé en clair.",
+"nœud de confiance":"Relais intermédiaire d'un réseau QKD longue distance qui voit la clé en clair.",
+"trusted nodes":"Voir nœuds de confiance.",
+"trusted node":"Voir nœud de confiance.",
+"PQC":"Post-Quantum Cryptography : algorithmes logiciels conçus pour résister aux ordinateurs quantiques.",
+"ML-KEM":"Standard NIST FIPS 203 d'échange de clés (ex-Kyber), fondé sur les réseaux euclidiens.",
+"ML-DSA":"Standard NIST FIPS 204 de signature (ex-Dilithium).",
+"SLH-DSA":"Standard NIST FIPS 205 de signature à base de hachage (ex-SPHINCS+).",
+"HQC":"Algorithme d'échange de clés à base de codes correcteurs, sélectionné par le NIST en 2025.",
+"Shor":"Algorithme quantique (1994) qui factorise et calcule les logarithmes discrets efficacement.",
+"Grover":"Algorithme quantique de recherche qui divise par deux la sécurité en bits d'une clé symétrique.",
+"harvest now, decrypt later":"Stocker aujourd'hui des données chiffrées pour les déchiffrer quand la machine quantique existera.",
+"fibre noire":"Fibre optique dédiée, sans autre trafic.",
+"masque jetable":"Chiffrement avec une clé aussi longue que le message et utilisée une seule fois : sécurité parfaite.",
+"états leurres":"Impulsions de test d'intensités variées pour détecter les attaques sur sources multi-photons.",
+"decoy states":"Voir états leurres.",
+"MDI-QKD":"QKD indépendante des appareils de mesure : supprime les failles des détecteurs.",
+"répéteur quantique":"Dispositif hypothétique qui étendrait la portée sans voir la clé. Pas disponible industriellement.",
+"répéteurs quantiques":"Dispositifs hypothétiques qui étendraient la portée sans voir la clé. Pas disponibles industriellement.",
+"KMS":"Key Management System : gestionnaire de clés qui distribue les clés aux applications.",
+"CBOM":"Cryptographic Bill of Materials : inventaire des composants cryptographiques d'un système.",
+"crypto-agilité":"Capacité à changer d'algorithme cryptographique sans refonte.",
+"intrication":"Corrélation quantique entre deux particules utilisée par certains protocoles (E91).",
+"SNSPD":"Détecteur de photons uniques à nanofils supraconducteurs, très performant mais cryogénique.",
+"PNS":"Photon-Number Splitting : attaque sur une source émettant plusieurs photons.",
+"MACsec":"Protocole de chiffrement de liaison de niveau 2 (Ethernet).",
+"tamisage":"Étape où Alice et Bob ne gardent que les bits où leurs bases coïncident.",
+"dB":"Décibel : unité logarithmique de perte. 10 dB = facteur 10, 20 dB = facteur 100."
+};
+
+</script>
+<script>
+"use strict";
+/* ====================== PLAN (numérotation du Word) ====================== */
+const PLAN=[
+{id:"1",t:"Introduction et contexte stratégique",s:"Contexte stratégique",c:[
+ {id:"1.1",t:"La menace de l’ordinateur quantique sur la cryptographie",s:"Menace quantique",c:[
+  {id:"1.1.1",t:"Vulnérabilité des algorithmes asymétriques actuels (RSA, ECC)",s:"RSA et ECC vulnérables"},
+  {id:"1.1.2",t:"L’échéance du risque et la nécessité d’anticiper la transition",s:"Échéance du risque"}]},
+ {id:"1.2",t:"La promesse initiale de la QKD (Quantum Key Distribution)",s:"Promesse de la QKD",c:[
+  {id:"1.2.1",t:"Un positionnement marketing et théorique de « solution ultime »",s:"« Solution ultime »"},
+  {id:"1.2.2",t:"L’objectif recherché : garantir l’inviolabilité de l’échange de clés",s:"Échange inviolable"}]}]},
+{id:"2",t:"Principes Fondamentaux et Fonctionnement de la QKD",s:"Principes et fonctionnement",c:[
+ {id:"2.1",t:"Les bases de la physique quantique appliquées",s:"Physique quantique",c:[
+  {id:"2.1.1",t:"Utilisation de la polarisation des photons individuels",s:"Photons polarisés"},
+  {id:"2.1.2",t:"Le théorème de non-clonage et les lois de la mesure",s:"Non-clonage et mesure"}]},
+ {id:"2.2",t:"Architecture d'un système QKD",s:"Architecture",c:[
+  {id:"2.2.1",t:"Le canal quantique vs le canal classique",s:"Canal quantique vs classique"},
+  {id:"2.2.2",t:"La distinction fondamentale : la QKD sécurise le transport de la clé uniquement",s:"Transport de clé seulement"}]}]},
+{id:"3",t:"Analyse des Cas d'Usage et Promesses Initiales",s:"Cas d'usage",c:[
+ {id:"3.1",t:"Les déploiements pionniers et démonstrateurs industriels",s:"Déploiements pionniers",c:[
+  {id:"3.1.1",t:"Les réseaux métropolitains expérimentaux (Genève, Tokyo)",s:"Réseaux métropolitains"},
+  {id:"3.1.2",t:"Les grands projets nationaux et spatiaux (réseau Pékin-Shanghai, satellite Micius)",s:"Pékin-Shanghai et Micius"}]},
+ {id:"3.2",t:"Scénarios d'application ciblés",s:"Scénarios ciblés",c:[
+  {id:"3.2.1",t:"Liaisons point-à-point critiques (interconnexion de data centers hautement sensibles)",s:"Liaisons point-à-point"},
+  {id:"3.2.2",t:"Infrastructures étatiques et militaires à budget illimité",s:"États et militaires"}]}]},
+{id:"4",t:"Le Mur de la Réalité : Limites Techniques et Opérationnelles",s:"Le mur de la réalité",c:[
+ {id:"4.1",t:"Les contraintes physiques incompressibles",s:"Contraintes physiques",c:[
+  {id:"4.1.1",t:"La limitation de portée (atténuation du signal dans la fibre optique au-delà de 50-100 km)",s:"Portée limitée"},
+  {id:"4.1.2",t:"Le problème critique des trusted nodes et la réintroduction de failles de sécurité physiques",s:"Trusted nodes"}]},
+ {id:"4.2",t:"L'impasse économique et industrielle",s:"Impasse économique",c:[
+  {id:"4.2.1",t:"Un coût pharaonique",s:"Un coût pharaonique"},
+  {id:"4.2.2",t:"L'impossibilité matérielle d'une adoption de masse",s:"Pas d'adoption de masse"}]},
+ {id:"4.3",t:"Le manque de transversalité fonctionnelle",s:"Manque de transversalité",c:[
+  {id:"4.3.1",t:"Absence de chiffrement natif des données et gestion complexe de l'authentification",s:"Pas de chiffrement natif"}]}]},
+{id:"5",t:"Synthèse des Enseignements et Bilan des Travaux de R&D",s:"Bilan de la R&D",c:[
+ {id:"5.1",t:"Le constat partagé par les agences de sécurité nationales",s:"Avis des agences",c:[
+  {id:"5.1.1",t:"Les réserves formulées par la NSA, le NCSC et l'ANSSI/BSI",s:"Réserves NSA, NCSC, ANSSI"},
+  {id:"5.1.2",t:"Le rejet de la QKD comme standard de cybersécurité pour les infrastructures globales",s:"Rejet comme standard"}]},
+ {id:"5.2",t:"L'alternative gagnante : la PQC (Post-Quantum Cryptography)",s:"L'alternative PQC",c:[
+  {id:"5.2.1",t:"Le choix de la flexibilité logicielle et mathématique (standardisation NIST)",s:"Standards NIST"},
+  {id:"5.2.2",t:"La compatibilité avec les infrastructures actuelles sans modification matérielle",s:"Compatibilité sans matériel"}]}]},
+{id:"6",t:"Conclusion et Décision Stratégique",s:"Conclusion",c:[
+ {id:"6.1",t:"Bilan de la démarche R&D sur la QKD (motifs de la mise en veille / de l'abandon)",s:"Bilan et motifs"},
+ {id:"6.2",t:"Recommandations opérationnelles pour l'organisation (pivot et investissement prioritaire sur la PQC)",s:"Recommandations"}]}
+];
+const flat=[];(function w(a,d,p){a.forEach(x=>{x.d=d;x.p=p;flat.push(x);if(x.c)w(x.c,d+1,x)})})(PLAN,1,null);
+const byId=Object.fromEntries(flat.map(x=>[x.id,x]));
+const leaves=flat.filter(x=>!x.c);
+const chIdx=x=>{while(x.p)x=x.p;return PLAN.indexOf(x)};
+const COL=["#ff6b8b","#ffa24e","#ecc94b","#4ee0a0","#5ec8ff","#b58bff"];
+
+
+/* ====================== CONTENU PÉDAGOGIQUE ====================== */
+/* q: [question, options, indexBonneRéponse, explication] */
+const C={
+"1.1.1":{i:"Aujourd'hui, RSA et ECC protègent nos échanges de clés et nos signatures. Leur solidité repose sur des problèmes mathématiques que les ordinateurs classiques ne résolvent pas en temps raisonnable. Un ordinateur quantique assez puissant, avec l'algorithme de Shor, les casserait.",
+ k:["RSA repose sur la factorisation, ECC sur le logarithme discret.","Shor (1994) résout les deux en temps polynomial sur une machine quantique suffisante.","AES n'est qu'affaibli (algorithme de Grover) : passer à AES-256 suffit."],a:["impact"],
+ q:[["Quel algorithme quantique menace RSA et ECC ?",["Grover","Shor","BB84","Kyber"],1,"C'est l'algorithme de Shor (1994)."],["Face à Grover, que fait-on pour AES ?",["On l'abandonne","On double la taille de clé","On passe à RSA","On utilise la QKD"],1,"Grover divise la sécurité par deux en bits : AES-256 garde 128 bits effectifs."]]},
+"1.1.2":{i:"Le danger n'attend pas la machine : des données interceptées aujourd'hui peuvent être déchiffrées demain (« harvest now, decrypt later »). Il faut comparer la durée pendant laquelle un secret doit rester confidentiel, le temps de migration, et l'arrivée probable de l'ordinateur quantique.",
+ k:["Inégalité de Mosca : si X + Y > Z, le risque est déjà là (X = durée de confidentialité, Y = temps de migration, Z = délai avant la machine).","Calendrier proposé par le NIST dans le projet IR 8547 (novembre 2024) : algorithmes vulnérables dépréciés après 2030, interdits après 2035. Texte encore en projet : à confirmer.","Les données à longue durée de vie (santé, défense, propriété industrielle) sont les plus exposées."],a:["mosca"],
+ q:[["Que signifie « harvest now, decrypt later » ?",["Détruire les anciennes données","Stocker des données chiffrées pour les casser plus tard","Chiffrer deux fois","Un algorithme post-quantique"],1,"L'attaquant collecte maintenant et déchiffrera quand la machine existera."],["Selon Mosca, on est en danger quand…",["X + Y < Z","X + Y > Z","Z = 0","Y = 0"],1,"Quand durée de confidentialité + temps de migration dépassent le délai avant la machine quantique."]]},
+"1.2.1":{i:"La QKD a été présentée comme une sécurité « garantie par la physique », voire inviolable. C'est vrai pour le protocole idéal, mais cet argument ignore l'écart entre la théorie et les équipements réels. Retourne les cartes pour confronter promesses et réalité.",
+ k:["Une preuve de sécurité vaut pour un modèle, pas pour un laser ou un détecteur réel.","La QKD livre une clé : elle ne remplace pas la cryptographie dans son ensemble."],a:["cards",{pairs:[["« Inviolable, garantie par la physique »","La preuve vaut pour un protocole idéal, pas pour des détecteurs et lasers réels (attaques d'implémentation)."],["« Remplace la cryptographie classique »","Elle ne chiffre pas et ne signe pas : elle livre seulement une clé."],["« Sécurité de bout en bout »","Sur longue distance, les nœuds de confiance voient la clé en clair."],["« Technologie prête pour tous »","Matériel dédié, portée limitée, coût élevé, pas de passage à l'échelle."]]}],
+ q:[["Pourquoi « inviolable » est-il trompeur ?",["La physique quantique est fausse","La preuve concerne un protocole idéal, pas un équipement réel","Les photons sont trop lents","Les clés sont trop courtes"],1,"L'écart entre modèle théorique et implémentation est la source des attaques pratiques."]]},
+"1.2.2":{i:"L'objectif est la sécurité au sens de la théorie de l'information : même un attaquant à la puissance de calcul illimitée ne peut pas connaître la clé sans être détecté. Toute écoute laisse une trace statistique, qui permet de jeter la clé. Essaie avec Ève ci-dessous.",
+ k:["Sécurité indépendante de la puissance de calcul (contrairement à RSA/ECC).","La détection d'espionnage repose sur le taux d'erreurs (QBER).","Le livrable de la QKD est une clé partagée, pas un message."],a:["bb84",{eve:true}],
+ q:[["Qu'est-ce qui rend l'écoute détectable ?",["Le bruit des fibres","Mesurer un photon le perturbe, ce qui crée des erreurs","Le canal classique","La longueur de clé"],1,"La mesure quantique perturbe l'état, d'où un QBER anormal."],["La sécurité de la QKD dépend-elle de la puissance de calcul de l'attaquant ?",["Oui, comme RSA","Non, elle est de nature physique / théorie de l'information"],1,"C'est son argument central, sous réserve d'implémentation fidèle."]]},
+"2.1.1":{i:"Un photon peut être polarisé : sa vibration a une direction. Alice choisit au hasard un bit (0 ou 1) et une base (+ ou ×), puis envoie le photon correspondant. Bob mesure avec une base choisie au hasard : même base qu'Alice, il lit le bon bit ; sinon, son résultat est aléatoire.",
+ k:["Protocole BB84 (Bennett et Brassard, 1984) : 4 états de polarisation, 2 bases.","Bases identiques dans environ 50 % des cas : on ne garde que ces bits (tamisage).","Les bases sont comparées publiquement, jamais les bits."],a:["bb84",{}],
+ q:[["Bob utilise la mauvaise base. Il obtient…",["Le bon bit","Un résultat aléatoire","Rien","Toujours 0"],1,"Mesurer dans la mauvaise base donne 0 ou 1 avec une probabilité de 50 %."],["Quelle proportion des photons garde-t-on environ après tamisage ?",["25 %","50 %","75 %","100 %"],1,"Une chance sur deux que les bases coïncident."]]},
+"2.1.2":{i:"Un état quantique inconnu ne peut pas être copié (no-cloning) et mesurer un photon dans la mauvaise base le perturbe. Une espionne (Ève) qui intercepte et renvoie les photons crée des erreurs : environ 25 % sur les bits tamisés. Active-la dans la simulation.",
+ k:["No-cloning : Wootters et Zurek, 1982.","QBER : taux d'erreurs sur les bits gardés. Seuil BB84 de l'ordre de 11 %.","Bruit naturel et espion ne se distinguent pas : on suppose le pire."],a:["bb84",{eve:true}],
+ q:[["QBER attendu avec une attaque « intercepter et renvoyer » ?",["0 %","≈ 25 %","≈ 50 %","100 %"],1,"Ève se trompe de base une fois sur deux, et cela génère une erreur une fois sur deux : 25 %."],["QBER au-dessus du seuil : que fait-on ?",["On garde la clé","On la jette et on recommence","On ignore","On envoie plus de photons"],1,"La clé n'est plus sûre."]]},
+"2.2.1":{i:"Deux canaux coopèrent. Le canal quantique transporte les photons. Le canal classique (une connexion ordinaire, mais authentifiée) sert à comparer les bases, estimer les erreurs, corriger la clé et la compresser pour effacer ce qu'Ève a pu apprendre.",
+ k:["Canal classique : authentifié, pas nécessairement chiffré.","Étapes : tamisage, estimation du QBER, correction d'erreurs, amplification de confidentialité.","L'authentification exige un secret initial."],a:["pipe"],
+ q:[["Le canal classique doit être…",["Authentifié","Chiffré en AES","Quantique","Inexistant"],0,"Sans authentification, un homme du milieu pourrait s'y glisser."],["Rôle de l'amplification de confidentialité ?",["Accélérer le débit","Réduire l'information qu'Ève pourrait avoir en raccourcissant la clé","Chiffrer les données","Authentifier Bob"],1,"On sacrifie des bits pour éliminer ce qu'Ève peut avoir deviné."]]},
+"2.2.2":{i:"La QKD ne fait qu'une chose : fabriquer une clé secrète partagée entre deux points. Les données doivent ensuite être chiffrées avec cette clé (AES, ou masque jetable), et l'authentification, les signatures et les identités ne sont pas couvertes. Teste ton intuition.",
+ k:["Clé QKD → algorithme symétrique (ex. AES) → données chiffrées.","Pas de signature, pas de PKI, pas de non-répudiation."],a:["cov"],
+ q:[["Après la QKD, comment chiffre-t-on les données ?",["Les photons les transportent","Avec un algorithme symétrique (AES) utilisant la clé","Avec RSA","Pas besoin de chiffrer"],1,"La QKD ne chiffre pas : elle fournit la clé."],["La QKD remplace-t-elle les signatures numériques ?",["Oui","Non"],1,"Aucune fonction de signature."]]},
+"3.1.1":{i:"Dès les années 2000, plusieurs réseaux pilotes ont montré que la QKD pouvait cohabiter avec des réseaux télécoms réels : DARPA (Boston, opérationnel en 2003), SECOQC (Vienne, 2008), le réseau de Tokyo (2010) et SwissQuantum (Genève, de mars 2009 à janvier 2011).",
+ k:["Objectif : démontrer l'intégration, l'interopérabilité et la fiabilité.","Distances métropolitaines, avec plusieurs fabricants (Tokyo).","Limites déjà visibles : débits faibles, besoin de nœuds de confiance."],a:["time",{hl:[2,3,4]}],
+ q:[["Quel était l'objectif de ces réseaux pilotes ?",["Remplacer Internet","Démontrer la faisabilité en conditions réelles","Vendre à grande échelle","Casser RSA"],1,"Ce sont des démonstrateurs."],["SECOQC a eu lieu à…",["Tokyo","Genève","Vienne","Pékin"],2,"Vienne, 2008."]]},
+"3.1.2":{i:"À grande échelle, la Chine a déployé une dorsale d'environ 2 000 km entre Pékin et Shanghai (inaugurée en septembre 2017), reposant sur 32 nœuds de confiance, et lancé le satellite Micius (2016), qui a réalisé de la QKD entre l'espace et le sol sur plus de 1 000 km.",
+ k:["La longue distance repose sur des nœuds de confiance (voir 4.1.2).","Un satellite évite l'atténuation de la fibre, mais dépend de la météo, de la visée et d'un segment spatial coûteux."],a:["time",{hl:[5,6]}],
+ q:[["Comment la dorsale Pékin-Shanghai couvre-t-elle 2 000 km ?",["Un seul lien","Des nœuds de confiance successifs","Des répéteurs quantiques","Des amplificateurs optiques"],1,"Aucun répéteur quantique n'existe industriellement."],["Pourquoi un satellite aide-t-il ?",["Il amplifie les photons","Dans l'espace, il n'y a presque pas d'atténuation","Il est moins cher","Il chiffre les données"],1,"Le vide n'absorbe pas les photons comme la fibre."]]},
+"3.2.1":{i:"Le scénario idéal pour la QKD est un lien fixe et dédié entre deux sites très sensibles, par exemple deux data centers d'une même organisation, reliés par fibre noire à moins de ~100 km.",
+ k:["Point-à-point, distance limitée, sites fixes.","Valeur : se protéger de « harvest now, decrypt later » sur des liaisons très sensibles.","Hors de ce cas, d'autres solutions sont plus simples."],
+ q:[["Quel est le cas d'usage naturel de la QKD ?",["Le Wi-Fi public","Un lien fixe et dédié entre deux sites sensibles","L'e-mail grand public","Les objets connectés"],1,"Le point-à-point en fibre dédiée est son terrain idéal."]],sch:["Data center A","Fibre noire + QKD","Data center B"]},
+"3.2.2":{i:"Seuls des acteurs avec budget et enjeux de souveraineté élevés ont déployé la QKD à grande échelle : programmes d'État (réseaux chinois, initiative européenne EuroQCI), défense, diplomatie.",
+ k:["Financement public indispensable.","Argument souverain autant que technique.","Les agences de sécurité restent pourtant réservées (voir chapitre 5)."],
+ q:[["Qui a financé l'essentiel des déploiements QKD ?",["Le grand public","Les États et programmes publics","Les fournisseurs d'accès","Les banques seulement"],1,"Les coûts imposent des financements publics."]]},
+"4.1.1":{i:"Dans une fibre, la lumière perd environ 0,2 dB par km. Après 100 km, il ne reste que 1 % des photons, après 200 km 0,01 %. Les télécoms amplifient le signal, mais un photon unique ne peut pas être copié : pas d'amplificateur pour la QKD.",
+ k:["Atténuation ≈ 0,2 dB/km à 1550 nm.","Pas de copie possible, donc pas d'amplificateur (no-cloning).","Le débit de clé s'effondre de façon exponentielle avec la distance."],a:["atten"],
+ q:[["Pourquoi pas d'amplificateur en QKD ?",["Trop coûteux","Amplifier reviendrait à copier le photon (interdit)","Ils ajoutent du bruit seulement","Il n'y a pas de fibre"],1,"Théorème de non-clonage."],["À 100 km, il reste environ…",["90 %","10 %","1 %","0,01 %"],2,"20 dB de pertes = facteur 100."]]},
+"4.1.2":{i:"Pour dépasser la portée, on chaîne des liaisons QKD via des nœuds de confiance. Chaque nœud reçoit la clé, la déchiffre puis la renvoie vers le suivant : la clé de bout en bout y existe en clair. Si un nœud est compromis, tout est perdu. Clique sur les nœuds.",
+ k:["Les trusted nodes doivent être protégés physiquement et logiquement.","On retombe sur un modèle de confiance, comme en cryptographie classique.","Les répéteurs quantiques supprimeraient ce problème, mais ils ne sont pas disponibles."],a:["trust"],
+ q:[["Que voit un trusted node ?",["Rien","La clé en clair","Seulement du chiffré","Un hachage"],1,"Il manipule la clé pour la relayer."],["Qu'est-ce qui supprimerait ce problème ?",["Un répéteur quantique","Une fibre plus épaisse","AES","Plus de lasers"],0,"Il permettrait la sécurité de bout en bout, mais n'existe pas industriellement."]],sch:["Site A","Nœud 1","Nœud 2","Site B"]},
+"4.2.1":{i:"La QKD exige du matériel spécialisé : sources laser atténuées, détecteurs de photons uniques (parfois cryogéniques), électronique de synchronisation, et souvent une fibre noire dédiée. Le coût par lien est sans commune mesure avec une mise à jour logicielle.",
+ k:["Matériel dédié par lien, des deux côtés.","Fibre noire ou multiplexage délicat.","Maintenance, étalonnage, certification : un coût d'exploitation en plus.","Chiffre à documenter avec vos propres données R&D."],
+ q:[["Qu'est-ce qui fait exploser le coût d'un lien QKD ?",["Le logiciel","Le matériel dédié et la fibre","Les licences","Le nombre de clés"],1,"Sources, détecteurs, fibre, exploitation."]],sch:["Matériel dédié","Fibre noire","Coût par lien"]},
+"4.2.2":{i:"La QKD est du point-à-point. Pour relier N sites entre eux, il faut jusqu'à N(N-1)/2 liens dédiés, alors qu'une solution logicielle se déploie par mise à jour. Pas de routage natif, ni de mobile, ni de cloud. Bouge le curseur.",
+ k:["Un lien physique par paire de sites.","Pas de diffusion ni de routage natifs.","Incompatible avec le sans-fil, le mobile et le cloud public."],a:["mesh"],
+ q:[["Combien de liens QKD pour relier 10 sites en maillage complet ?",["10","20","45","90"],2,"10 × 9 / 2 = 45."]]},
+"4.3.1":{i:"Au-delà de l'échange de clé, la QKD ne chiffre rien et exige une authentification préalable du canal classique, ce qui demande un secret initial (clé pré-partagée ou signatures post-quantiques). S'ajoutent des attaques sur l'implémentation, comme l'aveuglement des détecteurs.",
+ k:["Authentification : secret initial nécessaire.","Attaques d'implémentation (Lydersen et al., 2010) : aveuglement de détecteurs, photon-number splitting, canaux auxiliaires.","La certification de la sécurité des équipements reste immature."],a:["cov"],
+ q:[["Pourquoi faut-il un secret initial ?",["Pour chiffrer les photons","Pour authentifier le canal classique et éviter un homme du milieu","Pour le débit","Pour la fibre"],1,"Sinon Ève pourrait se faire passer pour l'un des deux."],["Une attaque d'implémentation cible…",["Les lois de la physique","Les défauts des équipements réels","Le protocole idéal","Les fibres seulement"],1,"Ex : aveuglement des détecteurs."]]},
+"5.1.1":{i:"Plusieurs agences nationales de cybersécurité ont publié des réserves explicites sur la QKD et recommandent en priorité la cryptographie post-quantique. Retourne les cartes. À vérifier : relis chaque document source avant de citer.",
+ k:["Toutes pointent la maturité, l'authentification, les attaques d'implémentation et le coût.","Position commune : PQC d'abord."],a:["cards",{pairs:[["NSA (États-Unis)","Ne recommande pas la QKD pour les systèmes de sécurité nationale ; privilégie la PQC. À vérifier dans la FAQ NSA."],["NCSC (Royaume-Uni)","Ne soutient pas la QKD pour un usage gouvernemental ou militaire (livre blanc de 2020, mis à jour en août 2025)."],["ANSSI et BSI","Position commune avec les agences néerlandaise et suédoise (janvier 2024) : QKD de niche, maturité insuffisante, PQC prioritaire."]]}],
+ q:[["Que recommandent en priorité ces agences ?",["La QKD","La cryptographie post-quantique","Rien","Des fibres noires"],1,"La PQC est leur recommandation."]]},
+"5.1.2":{i:"Au-delà des positions individuelles, un même faisceau d'arguments revient : la QKD ne répond pas aux besoins des infrastructures globales. Retourne chaque carte pour revoir le motif.",
+ k:["Elle n'est pas un standard de cybersécurité adapté à l'échelle.","Possible rôle complémentaire, jamais de substitution."],a:["cards",{pairs:[["Authentification","Nécessite un secret ou de la PQC en amont."],["Implémentation","Les équipements réels ouvrent des attaques."],["Trusted nodes","La confiance revient au centre du modèle."],["Coût et échelle","Matériel dédié, point-à-point."],["Certification","Peu de cadres d'évaluation matures."]]}],
+ q:[["Quelle est la position commune sur le rôle de la QKD ?",["Standard universel","Au mieux complémentaire, jamais en remplacement de la PQC","Obligatoire","Interdite"],1,"Position partagée par les agences."]]},
+"5.2.1":{i:"La réponse du NIST : des algorithmes à clé publique résistants aux ordinateurs quantiques, standardisés en 2024, fondés sur des problèmes mathématiques réputés difficiles même pour une machine quantique.",
+ k:["Août 2024 : FIPS 203 (ML-KEM), FIPS 204 (ML-DSA), FIPS 205 (SLH-DSA).","2025 : HQC retenu comme algorithme complémentaire d'échange de clés.","Familles : réseaux euclidiens, codes, hachage."],a:["cards",{pairs:[["FIPS 203 : ML-KEM","Échange de clés (ex-Kyber), réseaux euclidiens."],["FIPS 204 : ML-DSA","Signature numérique (ex-Dilithium)."],["FIPS 205 : SLH-DSA","Signature à base de hachage (ex-SPHINCS+)."],["HQC (2025)","Échange de clés complémentaire, fondé sur des codes correcteurs."]]}],
+ q:[["ML-KEM sert à…",["Signer","Échanger des clés","Hacher","Chiffrer en masse"],1,"Mécanisme d'encapsulation de clé."],["Quel standard est une signature à base de hachage ?",["FIPS 203","FIPS 204","FIPS 205","HQC"],2,"SLH-DSA."]]},
+"5.2.2":{i:"L'atout décisif de la PQC : elle est logicielle. Elle se déploie sur les infrastructures existantes (TLS, VPN, PKI) par mise à jour, sans matériel spécifique, et peut être combinée à la cryptographie classique en mode hybride.",
+ k:["Mode hybride : on combine classique et PQC pour résister si l'un des deux est cassé.","Crypto-agilité : pouvoir changer d'algorithme sans refonte.","Compromis : clés et signatures plus grosses, impacts sur les performances."],a:["cards",{pairs:[["Logiciel","Mise à jour, pas de matériel dédié."],["Hybride","Classique + PQC : double filet de sécurité."],["Crypto-agilité","Changer d'algorithme sans tout reconstruire."],["Compromis","Tailles plus grandes, tests de performance et de compatibilité."]]}],
+ q:[["Pourquoi le mode hybride en transition ?",["C'est moins cher","Si l'un des deux algorithmes est cassé, l'autre protège encore","Il est obligatoire","Il évite les mises à jour"],1,"Double protection pendant la maturation de la PQC."]],sch:["Inventaire crypto","Mode hybride","PQC seule"]},
+"6.1":{i:"Le bilan : la promesse théorique est réelle, mais portée, coût, trusted nodes, authentification et position des agences font de la QKD une impasse pour une adoption large. Les travaux ne sont pas perdus : ils nourrissent la veille et les compétences.",
+ k:["Motifs techniques : portée, débit, trusted nodes, implémentation.","Motifs économiques : matériel dédié, pas de passage à l'échelle.","Motifs stratégiques : position des agences, alternative PQC.","Acquis : compétences et veille conservées."],
+ q:[["Qu'est-ce qui reste utile des travaux R&D ?",["Rien","Les compétences, la veille et la compréhension du sujet","Le matériel déployé","Les contrats"],1,"Le savoir reste un actif même si le déploiement est abandonné."]],sch:["Promesse théorique","Limites réelles","Mise en veille"]},
+"6.2":{i:"La recommandation : investir en priorité dans la PQC, de façon progressive, en commençant par savoir ce qu'on protège et pour combien de temps.",
+ k:["1. Inventaire cryptographique.","2. Priorisation par durée de confidentialité (Mosca).","3. Déploiement hybride et crypto-agilité.","4. Veille QKD : répéteurs quantiques, certification, positions des agences."],
+ q:[["Première action recommandée ?",["Acheter du matériel QKD","Faire l'inventaire cryptographique","Supprimer RSA demain","Attendre"],1,"On ne migre bien que ce qu'on connaît."]],sch:["Inventaire","Priorisation","Migration hybride","Veille QKD"]}
+};
+/* fusion du contenu approfondi (contenu.js) */
+try{Object.entries(DEEP).forEach(([id,d])=>{const c=C[id];if(!c)return;const {q2,...rest}=d;Object.assign(c,rest);if(q2)c.q=c.q.concat(q2)})}catch(e){console.warn("contenu.js non chargé",e)}
+const GLOSS_=typeof GLOSS!=="undefined"?GLOSS:{};
+const GL_RE=new RegExp("(?<![\\p{L}\\p{N}])("+Object.keys(GLOSS_).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")(?![\\p{L}\\p{N}])","giu");
+function glossify(t){const seen=new Set();return esc(t).replace(GL_RE,m=>{const k=Object.keys(GLOSS_).find(x=>x.toLowerCase()===m.toLowerCase());if(!k||seen.has(k))return m;seen.add(k);return `<abbr class="gl" tabindex="0" data-t="${esc(GLOSS_[k])}">${m}</abbr>`})}
+const GENERIC_STARTERS=["En une phrase, c'est…","Un exemple concret :","La limite ou nuance :","Pourquoi c'est important pour notre R&D :"];
+
+/* ====================== ÉTAT ====================== */
+let S={notes:{},imgs:{},nimgs:{},schemas:{},quiz:{},seen:{},theme:"light"};
+const DB={
+ open(){return new Promise((res,rej)=>{const r=indexedDB.open("atelier-qkd-v2",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})},
+ async get(k){try{const d=await this.open();return await new Promise(res=>{const q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})}catch{try{return JSON.parse(localStorage.getItem(k))}catch{return null}}},
+ async set(k,v){try{const d=await this.open();d.transaction("kv","readwrite").objectStore("kv").put(v,k)}catch{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}}
+};
+let sv;function save(){clearTimeout(sv);sv=setTimeout(()=>DB.set("state",S),350)}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1900)}
+function download(n,t,ty){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:ty}));a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
+
+/* progression : 4 étapes par feuille */
+const steps=id=>[!!S.seen[id],!!S.quiz[id],((S.schemas[id]||{}).n||[]).length>=2,(S.notes[id]||"").trim().length>=40];
+const leafPct=id=>steps(id).filter(Boolean).length/4;
+function pct(x){if(!x.c)return leafPct(x.id);const L=leavesOf(x);return L.reduce((a,l)=>a+leafPct(l.id),0)/L.length}
+function leavesOf(x){return x.c?x.c.flatMap(leavesOf):[x]}
+function renderHeader(){
+  const done=leaves.filter(l=>leafPct(l.id)>=1).length;
+  $("#lvtxt").textContent=`${done} / ${leaves.length} sections terminées`;
+}
+
+/* ====================== MINDMAP ====================== */
+const open={ch:null,l2:null};let seenVis=new Set(),vb={x:-500,y:-380,w:1000,h:760},vbT=null;
+const svg=$("#map");
+function layout(){
+  const V=[{id:"root",x:0,y:0,r:70,label:"QKD",col:"#7c8cff",d:0}],E=[];
+  PLAN.forEach((ch,i)=>{
+    const a=(-90+i*60)*Math.PI/180,x=Math.cos(a)*240,y=Math.sin(a)*240;
+    V.push({id:ch.id,x,y,r:58,label:ch.s,col:COL[i],d:1,n:ch});E.push(["root",ch.id,COL[i]]);
+    if(open.ch===ch.id){
+      const m=ch.c.length;ch.c.forEach((s,k)=>{
+        const a2=a+(k-(m-1)/2)*.55,x2=Math.cos(a2)*470,y2=Math.sin(a2)*470;
+        V.push({id:s.id,x:x2,y:y2,r:48,label:s.s,col:COL[i],d:2,n:s});E.push([ch.id,s.id,COL[i]]);
+        if(open.l2===s.id&&s.c){const m3=s.c.length;s.c.forEach((t,j)=>{
+          const a3=a2+(j-(m3-1)/2)*.42,x3=Math.cos(a3)*690,y3=Math.sin(a3)*690;
+          V.push({id:t.id,x:x3,y:y3,r:46,label:t.s,col:COL[i],d:3,n:t});E.push([s.id,t.id,COL[i]])})}
+      })}
+  });
+  return {V,E};
+}
+function wrap(t,max){const w=t.split(" "),L=[];let c="";w.forEach(x=>{if((c+" "+x).trim().length>max&&c){L.push(c);c=x}else c=(c+" "+x).trim()});if(c)L.push(c);return L}
+function drawMap(){
+  const {V,E}=layout(),P=Object.fromEntries(V.map(v=>[v.id,v]));
+  let h="";
+  E.forEach(([a,b])=>{const p=P[a],q=P[b];h+=`<line class="edge" x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`});
+  V.forEach(v=>{
+    const dim=(open.ch&&v.d===1&&v.id!==open.ch)||(open.l2&&v.d===2&&v.id!==open.l2);
+    const p=v.id==="root"?(leaves.reduce((a,l)=>a+leafPct(l.id),0)/leaves.length):pct(v.n);
+    const circ=2*Math.PI*(v.r+5),lines=wrap(v.label,v.d===0?8:v.r>=58?12:13),fs=v.d===0?22:v.d===1?14:12.5;
+    h+=`<g class="node ${dim?"dim":""} ${p>=1?"done":""}" data-id="${v.id}" transform="translate(${v.x} ${v.y})"><title>${esc(v.n?v.n.id+". "+v.n.t:"Tout replier")}</title>
+      ${p>0&&p<1?`<circle r="${v.r+5}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="${(circ*p).toFixed(1)} ${circ.toFixed(1)}" transform="rotate(-90)"/>`:""}
+      <circle class="disc" r="${v.r}"/>
+      ${lines.map((l,i)=>`<text text-anchor="middle" font-size="${fs}" x="0" y="${((i-(lines.length-1)/2)*(fs+3)+fs*.35).toFixed(1)}">${esc(l)}</text>`).join("")}</g>`;
+  });
+  svg.innerHTML=h;
+  svg.querySelectorAll(".node").forEach(g=>g.onclick=e=>{e.stopPropagation();nodeClick(g.dataset.id)});
+  fitView(V);
+  $("#crumb").textContent=open.ch?("Carte › "+byId[open.ch].s+(open.l2?" › "+byId[open.l2].s:"")):"Carte";
+}
+function fitView(V){
+  let a=1e9,b=1e9,c=-1e9,d=-1e9;V.forEach(v=>{a=Math.min(a,v.x-v.r-50);c=Math.max(c,v.x+v.r+50);b=Math.min(b,v.y-v.r-50);d=Math.max(d,v.y+v.r+50)});
+  const W=svg.clientWidth||1000,H=svg.clientHeight||700,asp=W/H;let w=Math.max(c-a,760),h=Math.max(d-b,560);
+  if(w/h<asp)w=h*asp;else h=w/asp;
+  const t={x:(a+c)/2-w/2,y:(b+d)/2-h/2,w,h};tweenVB(t);
+}
+function tweenVB(t){cancelAnimationFrame(vbT);const s={...vb},t0=performance.now();
+  (function f(n){const k=Math.min(1,(n-t0)/550),e=1-Math.pow(1-k,3);vb={x:s.x+(t.x-s.x)*e,y:s.y+(t.y-s.y)*e,w:s.w+(t.w-s.w)*e,h:s.h+(t.h-s.h)*e};
+   svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);if(k<1)vbT=requestAnimationFrame(f)})(t0)}
+function nodeClick(id){
+  if(id==="root"){open.ch=open.l2=null;drawMap();return}
+  const n=byId[id];
+  if(n.d===1){open.ch=open.ch===id?null:id;open.l2=null;drawMap();return}
+  if(n.d===2&&n.c){open.l2=open.l2===id?null:id;drawMap();return}
+  openPanel(id);
+}
+svg.addEventListener("dblclick",e=>{if(e.target===svg){open.ch=open.l2=null;drawMap()}});
+$("#collapse").onclick=()=>{open.ch=open.l2=null;drawMap()};
+new ResizeObserver(()=>{clearTimeout(drawMap.t);drawMap.t=setTimeout(drawMap,120)}).observe($("#stage"));
+
+/* ====================== PANNEAU : 4 ÉTAPES ====================== */
+let cur=null,stepI=0,cleanup=null;
+const STEPN=["Comprendre","Se tester","Schéma","Notes"];
+function openPanel(id,st){
+  cur=id;stepI=st??firstTodo(id);renderPanel();$("#panel").classList.add("on");$("#veil").classList.add("on")}
+function firstTodo(id){const s=steps(id);const i=s.indexOf(false);return i<0?0:i}
+function closePanel(){if(cleanup){cleanup();cleanup=null}$("#panel").classList.remove("on");$("#veil").classList.remove("on");drawMap();renderHeader()}
+$("#veil").onclick=closePanel;document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#panel").classList.contains("on"))closePanel()});
+function renderPanel(){
+  if(cleanup){cleanup();cleanup=null}
+  const n=byId[cur],ok=steps(cur);
+  $("#panel").style.setProperty("--pc",COL[chIdx(n)]);
+  $("#panel").innerHTML=`<div class="ph"><button class="b sm close" id="x">✕</button><div class="num">${esc(path(n))}</div><h2>${n.id}. ${esc(n.t)}</h2>
+   <div class="steps">${STEPN.map((s,i)=>`<button class="${i===stepI?"on":""} ${ok[i]?"ok":""}" data-s="${i}">${s}</button>`).join("")}</div></div>
+   <div class="pb" id="pb"></div>
+   <div class="pf"><button class="b" id="prev" ${stepI===0?"disabled style='opacity:.4'":""}>← Précédent</button><button class="b pri" id="next">${stepI===3?"Terminer":"Suivant →"}</button></div>`;
+  $("#x").onclick=closePanel;
+  $("#panel").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go(+b.dataset.s));
+  $("#prev").onclick=()=>go(stepI-1);$("#next").onclick=()=>{if(stepI<3)return go(stepI+1);const full=leafPct(cur)>=1;toast(full?"Section maîtrisée":"Section enregistrée");closePanel();if(full)confetti()};
+  [stepComp,stepQuiz,stepSchema,stepNotes][stepI]($("#pb"));
+}
+function go(i){if(stepI===0)S.seen[cur]=true;save();stepI=i;renderPanel()}
+function path(n){const a=[];let p=n.p;while(p){a.unshift(p.id+". "+p.s);p=p.p}return a.join("  ›  ")}
+
+function stepComp(h){
+  const c=C[cur];
+  if(!c){h.innerHTML=`<p class="lead muted">Contenu à venir pour cette section.</p>`;return}
+  const more=[];
+  if(c.x)more.push(`<div class="sub">Exemple</div><p>${esc(c.x)}</p>`);
+  if(c.d)c.d.forEach(([t,p])=>more.push(`<div class="sub">${esc(t)}</div><p>${esc(p)}</p>`));
+  if(c.m)c.m.forEach(([a,b])=>more.push(`<div class="sub">Idée reçue</div><p>${esc(a)}<br><span class="muted">${esc(b)}</span></p>`));
+  const sr=SRC[cur];if(sr)more.push(`<div class="sub">Sources (consultées le 26/10/2026)</div><ul>${sr.map(([t,u])=>`<li><a href="${u}" target="_blank" rel="noopener noreferrer">${esc(t)}</a></li>`).join("")}</ul>`);else if(c.r)more.push(`<div class="sub">Pour approfondir</div><ul>${c.r.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>`);
+  h.innerHTML=`<p class="lead">${esc(c.i)}</p><div class="card" id="anim" style="display:${c.a?"block":"none"}"></div>
+  <ul class="k">${c.k.slice(0,3).map(k=>`<li>${esc(k)}</li>`).join("")}</ul>
+  ${more.length?`<details class="dt more"><summary>Aller plus loin</summary>${more.join("")}</details>`:""}`;
+  if(c.a){const f=WIDGETS[c.a[0]];const r=f($("#anim"),c.a[1]||{});if(typeof r==="function")cleanup=r}
+}
+
+function stepQuiz(h){
+  const c=C[cur];if(!c||!c.q){h.innerHTML=`<p class="muted">Pas de quiz pour cette section.</p>`;return}
+  let i=0,score=0;
+  const show=()=>{
+    if(i>=c.q.length){const need=c.q.length>=3?c.q.length-1:c.q.length,perfect=score>=need;if(perfect&&!S.quiz[cur]){S.quiz[cur]=true;save();confetti()}
+      h.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:42px">${perfect?"":""}</div><h3>${score}/${c.q.length} ${perfect?"— bravo !":"— presque !"}</h3><p class="muted">${perfect?"Étape validée.":`Il faut au moins ${need}/${c.q.length} pour valider. Relis « En détail » si besoin et retente.`}</p><button class="b pri" id="rt">Recommencer</button></div>`;
+      $("#rt").onclick=()=>{i=0;score=0;show()};return}
+    const [q,o,a,w]=c.q[i];
+    h.innerHTML=`<div class="dotsq">${c.q.map((_,k)=>`<i class="${k<i?"d":k===i?"c":""}"></i>`).join("")}</div><div class="q">${esc(q)}</div>${o.map((x,k)=>`<button class="opt" data-k="${k}">${esc(x)}</button>`).join("")}<div id="fb"></div>`;
+    h.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;h.querySelectorAll(".opt").forEach(x=>x.disabled=true);
+      h.querySelectorAll(".opt")[a].classList.add("ok");if(k!==a)b.classList.add("ko");else score++;
+      $("#fb").innerHTML=`<div class="why">${k===a?"Exact. ":"Pas tout à fait. "}${esc(w)}</div><div style="margin-top:12px;text-align:right"><button class="b pri" id="nq">${i+1<c.q.length?"Question suivante":"Voir le résultat"}</button></div>`;
+      $("#nq").onclick=()=>{i++;show()}});
+  };show();
+}
+
+/* ---------- éditeur de schémas ---------- */
+const SC=["#7c8cff","#4ee0a0","#ffc15e","#ff6b8b","#5ec8ff","#b58bff"];
+function schemaMarkup(sc,sel,selE,forExport){
+  const N=Object.fromEntries(sc.n.map(n=>[n.id,n]));
+  let m=`<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${forExport?"#555":"#98a0c8"}"/></marker></defs>`;
+  sc.e.forEach((e,i)=>{const a=N[e[0]],b=N[e[1]];if(!a||!b)return;
+    const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1,hw=72,hh=28;
+    const t=Math.min(hw/Math.abs(dx||1e-6),hh/Math.abs(dy||1e-6));
+    const x1=a.x+dx*t,y1=a.y+dy*t,x2=b.x-dx*t,y2=b.y-dy*t;
+    m+=`<line data-e="${i}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${selE===i?"#ffc15e":forExport?"#555":"#98a0c8"}" stroke-width="2.5" marker-end="url(#ar)"/><line data-e="${i}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="16"/>`});
+  sc.n.forEach(n=>{const L=wrap(n.t||"…",18).slice(0,3);
+    m+=`<g data-n="${n.id}" style="cursor:grab"><rect x="${n.x-72}" y="${n.y-28}" width="144" height="56" rx="14" fill="${SC[n.c%6]}" fill-opacity="${forExport?".25":".3"}" stroke="${SC[n.c%6]}" stroke-width="${sel===n.id?4:2}"/>`+
+      L.map((l,i)=>`<text x="${n.x}" y="${n.y+((i-(L.length-1)/2)*15)+4}" text-anchor="middle" font-size="13" font-family="system-ui,sans-serif" fill="${forExport?"#111":"#eef0ff"}" style="pointer-events:none;${forExport?"":"fill:var(--ink)"}">${esc(l)}</text>`).join("")+`</g>`});
+  return m;
+}
+function schemaSVG(id){const sc=S.schemas[id];if(!sc||!sc.n.length)return"";
+  const xs=sc.n.map(n=>n.x),ys=sc.n.map(n=>n.y),x0=Math.min(...xs)-90,y0=Math.min(...ys)-50,w=Math.max(...xs)-x0+90,h=Math.max(...ys)-y0+50;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#fff"/>${schemaMarkup(sc,null,null,true)}</svg>`}
+function stepSchema(h){
+  const sc=S.schemas[cur]||(S.schemas[cur]={n:[],e:[]});let sel=null,selE=null,link=false,from=null,drag=null;
+  h.innerHTML=`<p class="muted">Dessine ta propre version : un schéma vaut mille mots. Double-clique dans le vide ou utilise + pour créer une boîte, glisse pour déplacer, « Relier » pour tracer une flèche.</p>
+  <div class="tools"><button class="b sm" id="add">+ Boîte</button><button class="b sm" id="lnk">Relier</button><button class="b sm" id="col">Couleur</button><button class="b sm" id="del">Supprimer</button><input type="text" id="txt" placeholder="Texte de la boîte sélectionnée" disabled><button class="b sm" id="pre">Modèle</button><button class="b sm" id="exp">Exporter SVG</button></div>
+  <svg id="cv" viewBox="0 0 720 400"></svg>`;
+  const cv=$("#cv"),txt=$("#txt");
+  const draw=()=>{cv.innerHTML=(sc.n.length?"":`<text x="360" y="200" text-anchor="middle" fill="var(--muted)" font-size="15">Clique sur Modèle pour démarrer, ou + Boîte</text>`)+schemaMarkup(sc,sel,selE);
+    $("#lnk").classList.toggle("on",link);txt.disabled=!sel;const n=sc.n.find(x=>x.id===sel);txt.value=n?n.t:""};
+  const pt=e=>{const p=cv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(cv.getScreenCTM().inverse())};
+  const addBox=(x,y,t)=>{const n={id:"n"+Math.random().toString(36).slice(2,7),x:Math.round(x),y:Math.round(y),t:t||"Nouvelle idée",c:sc.n.length%6};sc.n.push(n);sel=n.id;selE=null;save();draw();return n};
+  cv.onpointerdown=e=>{const g=e.target.closest("[data-n]"),ed=e.target.closest("[data-e]");
+    if(g){const id=g.dataset.n;
+      if(link){if(!from){from=id;sel=id}else if(from!==id&&!sc.e.some(q=>q[0]===from&&q[1]===id)){sc.e.push([from,id]);from=null;link=false;sel=id;save()}draw();return}
+      sel=id;selE=null;const n=sc.n.find(x=>x.id===id),p=pt(e);drag={n,dx:p.x-n.x,dy:p.y-n.y};cv.setPointerCapture(e.pointerId);draw();txt.focus();txt.select()}
+    else if(ed){selE=+ed.dataset.e;sel=null;draw()}
+    else{sel=null;selE=null;from=null;draw()}};
+  cv.onpointermove=e=>{if(!drag)return;const p=pt(e);drag.n.x=Math.round(Math.max(72,Math.min(648,p.x-drag.dx)));drag.n.y=Math.round(Math.max(28,Math.min(372,p.y-drag.dy)));draw()};
+  cv.onpointerup=()=>{if(drag){drag=null;save()}};
+  cv.ondblclick=e=>{if(e.target===cv||e.target.tagName==="text"&&!e.target.closest("[data-n]")){const p=pt(e);addBox(p.x,p.y);txt.focus();txt.select()}};
+  txt.oninput=()=>{const n=sc.n.find(x=>x.id===sel);if(n){n.t=txt.value;save();cv.innerHTML=(sc.n.length?"":"")+schemaMarkup(sc,sel,selE)}};
+  $("#add").onclick=()=>{addBox(120+Math.random()*480,60+Math.random()*280);txt.focus();txt.select()};
+  $("#lnk").onclick=()=>{link=!link;from=null;if(link)toast("Clique la boîte de départ, puis celle d'arrivée");draw()};
+  $("#col").onclick=()=>{const n=sc.n.find(x=>x.id===sel);if(n){n.c=(n.c+1)%6;save();draw()}};
+  $("#del").onclick=()=>{if(selE!=null){sc.e.splice(selE,1);selE=null}else if(sel){sc.n=sc.n.filter(n=>n.id!==sel);sc.e=sc.e.filter(e=>e[0]!==sel&&e[1]!==sel);S.schemas[cur]=sc;sel=null}save();draw()};
+  $("#pre").onclick=()=>{const lab=(C[cur]&&C[cur].sch)||["Cause","Mécanisme","Conséquence"];const gap=620/Math.max(1,lab.length-1);
+    sc.n.push(...lab.map((t,i)=>({id:"n"+Math.random().toString(36).slice(2,7),x:lab.length===1?360:Math.round(50+72+i*(gap-144*(lab.length-1)/Math.max(1,lab.length-1)*0)),y:200,t,c:i%6})));
+    const ids=sc.n.slice(-lab.length);ids.forEach((n,i)=>{n.x=Math.round(lab.length===1?360:90+i*(540/(lab.length-1)));if(i)sc.e.push([ids[i-1].id,n.id])});save();draw()};
+  $("#exp").onclick=()=>{const s=schemaSVG(cur);if(!s)return toast("Schéma vide");download(`schema-${cur}.svg`,s,"image/svg+xml")};
+  draw();
+}
+
+/* ---------- notes ---------- */
+function stepNotes(h){
+  const c=C[cur];
+  h.innerHTML=`<p class="muted">Pas besoin de tout écrire : pars du résumé, retouche avec tes mots, ajoute un exemple. 40 caractères suffisent pour valider l'étape.</p>
+  <div class="chips"><button class="b sm pri" id="sumb">Reprendre le résumé</button>${GENERIC_STARTERS.map(s=>`<button class="b sm" data-st="${esc(s)}">${esc(s)}</button>`).join("")}<button class="b sm" id="imgb">Image</button></div>
+  <textarea id="ta" placeholder="Tes mots, tes exemples, tes questions…"></textarea>
+  <div class="thumbs" id="th"></div>
+  ${S.schemas[cur]&&S.schemas[cur].n.length?`<div class="card"><div class="muted">Ton schéma</div><div style="background:#fff;border-radius:10px;padding:6px">${schemaSVG(cur)}</div></div>`:""}`;
+  const ta=$("#ta");ta.value=S.notes[cur]||"";
+  const upd=()=>{S.notes[cur]=ta.value;save()};ta.oninput=upd;
+  const ins=t=>{const a=ta.selectionStart;ta.setRangeText((ta.value&&!ta.value.endsWith("\n")?"\n\n":"")+t+" ",a,ta.selectionEnd,"end");ta.focus();upd()};
+  h.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>ins(b.dataset.st));
+  $("#sumb").onclick=()=>{if(!c)return;ins((c.i+"\n"+c.k.map(k=>"- "+k).join("\n")).trim())};
+  const thumbs=()=>{$("#th").innerHTML=(S.nimgs[cur]||[]).map(i=>`<div><img src="${S.imgs[i]}" alt=""><button data-r="${i}">✕</button></div>`).join("");
+    $("#th").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{S.nimgs[cur]=S.nimgs[cur].filter(x=>x!==b.dataset.r);delete S.imgs[b.dataset.r];save();thumbs()})};thumbs();
+  const add=f=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1400/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=im.width*k;cv.height=im.height*k;cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+    const id="i"+Date.now().toString(36);S.imgs[id]=cv.toDataURL("image/jpeg",.85);(S.nimgs[cur]=S.nimgs[cur]||[]).push(id);URL.revokeObjectURL(u);save();thumbs();toast("Image ajoutée")};im.src=u};
+  $("#imgb").onclick=()=>$("#fimg").click();$("#fimg").onchange=e=>{if(e.target.files[0])add(e.target.files[0]);e.target.value=""};
+  ta.onpaste=e=>{const f=[...(e.clipboardData?.files||[])].find(f=>f.type.startsWith("image/"));if(f){e.preventDefault();add(f)}};
+  ta.ondragover=e=>e.preventDefault();ta.ondrop=e=>{const f=[...e.dataTransfer.files].find(f=>f.type.startsWith("image/"));if(f){e.preventDefault();add(f)}};
+}
+
+/* ====================== ANIMATIONS INTERACTIVES ====================== */
+const WIDGETS={};
+const rb=()=>Math.random()<.5?1:0;
+WIDGETS.bb84=(host,o)=>{
+  let alive=true,busy=false;const G=(b,v)=>b?(v?"↖":"↗"):(v?"↑":"→"),B=b=>b?"×":"+",N=10;
+  host.innerHTML=`<div class="ctl"><button class="b pri" id="go">Envoyer 10 photons</button><label class="sw"><input type="checkbox" id="eve" ${o.eve?"checked":""}> Ève écoute</label><button class="b" id="sim">Simuler 1000 photons</button></div>
+  <div class="chan"><div class="ent">Alice</div><div class="line"><span class="eve">Ève</span><span class="ph" id="ph"></span></div><div class="ent">Bob</div></div>
+  <div class="tblw"><table class="bbt" id="tb"></table></div><div class="out" id="out"><span class="muted">Appuie sur ▶ : suis un photon, puis compare les bases.</span></div>`;
+  const eve=host.querySelector("#eve"),ev=host.querySelector(".eve"),tb=host.querySelector("#tb"),ph=host.querySelector("#ph"),out=host.querySelector("#out");
+  const eveUI=()=>ev.style.opacity=eve.checked?1:.12;eve.onchange=eveUI;eveUI();
+  const rows=["Bit d'Alice","Base d'Alice","Photon envoyé","Base de Bob","Résultat de Bob","Bases identiques ?"];
+  const build=(D)=>{tb.innerHTML=rows.map((r,ri)=>`<tr><th>${r}</th>${D.map((d,ci)=>`<td data-r="${ri}" data-c="${ci}">&nbsp;</td>`).join("")}</tr>`).join("")};
+  const set=(r,c,t,cl)=>{const td=tb.querySelector(`[data-r="${r}"][data-c="${c}"]`);td.textContent=t;if(cl)td.className=cl};
+  const one=(eveOn)=>{const ab=rb(),aB=rb(),bB=rb(),eB=rb();let pb=ab,pB=aB;if(eveOn){pb=eB===aB?ab:rb();pB=eB}const bb=bB===pB?pb:rb();return{ab,aB,bB,bb,keep:aB===bB,err:aB===bB&&bb!==ab}};
+  host.querySelector("#go").onclick=async()=>{if(busy)return;busy=true;const on=eve.checked,D=Array.from({length:N},()=>one(on));build(D);out.innerHTML="";
+    D.forEach((d,i)=>{set(0,i,d.ab);set(1,i,B(d.aB))});await sleep(500);
+    for(let i=0;i<N&&alive;i++){ph.textContent=G(D[i].aB,D[i].ab);ph.style.transition="none";ph.style.left="0%";ph.style.opacity=1;void ph.offsetWidth;ph.style.transition="left .4s linear";ph.style.left="96%";
+      set(2,i,G(D[i].aB,D[i].ab));await sleep(430);set(3,i,B(D[i].bB));set(4,i,D[i].bb)}
+    ph.style.opacity=0;if(!alive)return;await sleep(400);
+    D.forEach((d,i)=>{set(5,i,d.keep?"oui":"non");for(let r=0;r<6;r++){const td=tb.querySelector(`[data-r="${r}"][data-c="${i}"]`);td.classList.add(d.keep?"keep":"drop");if(d.err&&r===4)td.className="err"}});
+    const kept=D.filter(d=>d.keep),errs=kept.filter(d=>d.err).length;
+    out.innerHTML=`<div class="card"><b>On garde ${kept.length}/${N} bits</b> (bases identiques).<br>Bits gardés différents chez Bob : <b style="color:${errs?"var(--bad)":"var(--good)"}">${errs}</b> ${on?"→ Ève a laissé des traces.":"→ aucune trace."}<div class="muted" style="margin-top:6px">Avec seulement ${N} photons, le hasard domine. Lance la simulation sur 1000 pour voir le vrai taux d'erreurs.</div></div>`;busy=false};
+  host.querySelector("#sim").onclick=()=>{let k=0,e=0;for(let i=0;i<1000;i++){const d=one(eve.checked);if(d.keep){k++;if(d.err)e++}}const q=e/k*100;
+    out.innerHTML=`<div class="card">Sur 1000 photons : <b>${k}</b> bits gardés, <b>${e}</b> erreurs → <b>QBER = ${q.toFixed(1)} %</b>
+    <div class="meter"><i style="width:${Math.min(100,q*2)}%;background:${q>11?"var(--bad)":"var(--good)"}"></i><u style="left:22%"></u></div>
+    <div class="muted">Trait orange : seuil ≈ 11 %. ${q>11?"Écoute détectée : on jette la clé.":"Clé acceptée."}</div></div>`};
+  return()=>{alive=false};
+};
+WIDGETS.pipe=(host)=>{
+  const ST=[["Transmission quantique","canal quantique",1000,"Alice envoie des photons polarisés, Bob les mesure dans des bases aléatoires."],["Tamisage","canal classique",500,"Alice et Bob comparent publiquement leurs bases et gardent les mesures où elles coïncident."],["Estimation du QBER","canal classique",450,"Un échantillon de bits est comparé (et sacrifié) pour mesurer le taux d'erreurs. Au-dessus du seuil : abandon."],["Correction d'erreurs","canal classique",450,"Les deux clés sont réconciliées par échange de parités : Bob corrige ses bits erronés."],["Amplification de confidentialité","canal classique",300,"On compresse la clé par hachage pour éliminer ce qu'Ève peut avoir deviné. Clé finale, plus courte."]];
+  let i=0,timer=null;
+  host.innerHTML=`<div id="st"></div><div class="card" id="ds"></div><div class="ctl"><button class="b sm" id="pl">Lecture auto</button><span class="muted">Valeurs illustratives, pour visualiser le rétrécissement de la clé.</span></div>`;
+  const draw=()=>{host.querySelector("#st").innerHTML=ST.map((s,k)=>`<div class="stage ${k===i?"on":""}" data-k="${k}"><div class="bar2"><i style="width:${s[2]/10}%"></i><span>${s[0]}</span></div><div class="n">${s[2]} bits</div></div>`).join("");
+    host.querySelector("#ds").innerHTML=`<span class="tag">${ST[i][1]}</span> ${esc(ST[i][3])}`;
+    host.querySelectorAll(".stage").forEach(e=>e.onclick=()=>{i=+e.dataset.k;draw()})};
+  draw();
+  host.querySelector("#pl").onclick=()=>{if(timer){clearInterval(timer);timer=null;return}i=0;draw();timer=setInterval(()=>{i++;if(i>=ST.length){clearInterval(timer);timer=null;i=ST.length-1}draw()},1400)};
+  return()=>clearInterval(timer);
+};
+WIDGETS.atten=(host)=>{
+  host.innerHTML=`<div class="ctl"><b>Distance : <span id="d">50</span> km</b></div><input type="range" id="r" min="0" max="300" value="50">
+  <svg viewBox="0 0 600 220" id="gr" style="width:100%;background:var(--panel);border-radius:12px;margin-top:8px"></svg>
+  <div class="dots" id="dots"></div><div id="res" class="muted"></div>`;
+  const r=host.querySelector("#r"),dots=host.querySelector("#dots");dots.innerHTML="<i></i>".repeat(200);
+  const f=d=>Math.pow(10,-0.2*d/10);
+  const draw=()=>{const d=+r.value,T=f(d),lg=Math.log10(T);host.querySelector("#d").textContent=d;
+    let p="";for(let x=0;x<=300;x+=5)p+=(x?"L":"M")+(40+x*1.8).toFixed(1)+" "+(20+(-Math.log10(f(x)))*30).toFixed(1);
+    host.querySelector("#gr").innerHTML=`<path d="${p}" stroke="var(--accent)" stroke-width="3" fill="none"/>`+[0,-2,-4,-6].map(v=>`<line x1="40" x2="580" y1="${20-v*30}" y2="${20-v*30}" stroke="var(--line)"/><text x="4" y="${24-v*30}" font-size="11" fill="var(--muted)">10^${v}</text>`).join("")+
+      [50,100,200,300].map(x=>`<text x="${40+x*1.8}" y="214" font-size="11" fill="var(--muted)" text-anchor="middle">${x} km</text>`).join("")+
+      `<circle cx="${40+d*1.8}" cy="${20-lg*30}" r="7" fill="var(--warn)"/><text x="${Math.min(520,40+d*1.8+10)}" y="${20-lg*30-10}" font-size="12" fill="var(--ink)">${d} km</text>`;
+    const on=Math.round(200*T*(T<.005?0:1));[...dots.children].forEach((e,i)=>e.classList.toggle("on",i<on));
+    host.querySelector("#res").innerHTML=`Pertes : <b>${(0.2*d).toFixed(0)} dB</b> · il survit <b>${T>=.01?(T*100).toFixed(1)+" %":T.toExponential(1)}</b> des photons, soit ≈ ${T>=1e-3?Math.round(1000*T)+" sur 1 000":Math.round(T*1e6*10)/10+" sur 1 000 000"}. Chaque point allumé = un photon qui arrive (sur 200).`};
+  r.oninput=draw;draw();
+};
+WIDGETS.trust=(host)=>{
+  const names=["Site A","Nœud 1","Nœud 2","Nœud 3","Site B"];let bad=new Set(),rep=false;
+  host.innerHTML=`<div class="ctl"><label class="sw"><input type="checkbox" id="rp"> Répéteur quantique (futur hypothétique)</label><button class="b sm" id="rl">Relayer la clé</button></div><svg viewBox="0 0 640 190" id="sv" style="width:100%"></svg><div id="vd" class="card"></div>`;
+  const sv=host.querySelector("#sv"),vd=host.querySelector("#vd");
+  const draw=(hot=-1)=>{rep=host.querySelector("#rp").checked;
+    sv.innerHTML=names.map((n,i)=>{const x=60+i*130,mid=i>0&&i<4,b=bad.has(i),leak=mid&&!rep;
+      return (i<4?`<line x1="${x+34}" x2="${x+96}" y1="80" y2="80" stroke="${hot>=i?"var(--warn)":"var(--accent)"}" stroke-width="${hot>=i?5:3}" stroke-dasharray="6 5"/>`:"")+
+      `<g data-i="${i}" style="cursor:${mid?"pointer":"default"}"><circle cx="${x}" cy="80" r="34" fill="${b?"var(--bad)":leak?"var(--warn)":"var(--good)"}" fill-opacity=".3" stroke="${b?"var(--bad)":leak?"var(--warn)":"var(--good)"}" stroke-width="3"/><text x="${x}" y="84" text-anchor="middle" font-size="12" fill="var(--ink)">${n}</text>
+      <text x="${x}" y="140" text-anchor="middle" font-size="12" fill="var(--ink)">${mid?(rep?"clé jamais vue":b?"compromis":"voit la clé"):"extrémité"}</text></g>`}).join("");
+    const leaked=!rep&&[...bad].some(i=>i>0&&i<4);
+    vd.innerHTML=rep?`Avec un répéteur quantique, aucun nœud intermédiaire ne connaît la clé : sécurité de bout en bout. Ce n'est pas disponible aujourd'hui.`:leaked?`<b>Clé de bout en bout exposée</b> : un nœud compromis suffit. Toute la chaîne est cassée.`:`La clé finale existe en clair dans chaque nœud. <b>Clique sur un nœud</b> pour le compromettre.`;
+    sv.querySelectorAll("[data-i]").forEach(g=>g.onclick=()=>{const i=+g.dataset.i;if(i>0&&i<4){bad.has(i)?bad.delete(i):bad.add(i);draw()}})};
+  host.querySelector("#rp").onchange=()=>draw();
+  host.querySelector("#rl").onclick=async()=>{for(let i=0;i<4;i++){draw(i);await sleep(450)}draw()};
+  draw();
+};
+WIDGETS.mosca=(host)=>{
+  host.innerHTML=`<div class="rows"><span>X : durée de confidentialité</span><input type="range" id="x" min="1" max="30" value="12"><b id="xv"></b><span>Y : temps de migration</span><input type="range" id="y" min="1" max="15" value="6"><b id="yv"></b><span>Z : délai avant la machine</span><input type="range" id="z" min="3" max="40" value="15"><b id="zv"></b></div><svg viewBox="0 0 640 150" id="tl" style="width:100%;margin-top:8px"></svg><div id="vd" class="card"></div>`;
+  const g=s=>+host.querySelector(s).value;
+  const draw=()=>{const X=g("#x"),Y=g("#y"),Z=g("#z"),sc=15;["x","y","z"].forEach(k=>host.querySelector("#"+k+"v").textContent=g("#"+k)+" ans");
+    host.querySelector("#tl").innerHTML=`<rect x="20" y="30" width="${Y*sc}" height="26" rx="6" fill="var(--accent)"/><text x="${20+Y*sc/2}" y="48" text-anchor="middle" font-size="12" fill="#fff">Migration</text>
+    <rect x="${20+Y*sc}" y="64" width="${X*sc}" height="26" rx="6" fill="var(--warn)"/><text x="${20+Y*sc+X*sc/2}" y="82" text-anchor="middle" font-size="12" fill="#fff">Données à protéger</text>
+    ${X+Y>Z?`<rect x="${20+Z*sc}" y="64" width="${(X+Y-Z)*sc}" height="26" rx="6" fill="var(--bad)"/>`:""}
+    <line x1="${20+Z*sc}" x2="${20+Z*sc}" y1="10" y2="110" stroke="var(--bad)" stroke-width="3"/><text x="${20+Z*sc+6}" y="22" font-size="12" fill="var(--bad)">Machine quantique (Z)</text>
+    <text x="20" y="135" font-size="11" fill="var(--muted)">aujourd'hui</text>`;
+    host.querySelector("#vd").innerHTML=X+Y>Z?`X + Y = ${X+Y} > Z = ${Z} : données exposées pendant <b>${X+Y-Z} ans</b>. Il faut migrer maintenant.`:`X + Y = ${X+Y} ≤ Z = ${Z} : marge de ${Z-X-Y} ans, à condition de commencer à temps.`};
+  host.querySelectorAll("input").forEach(i=>i.oninput=draw);draw();
+};
+WIDGETS.impact=(host)=>{
+  const L=[["RSA-2048","Shor","bad","Cassé"],["ECC P-256","Shor","bad","Cassé"],["AES-128","Grover","mid","≈ 64 bits effectifs"],["AES-256","Grover","good","≈ 128 bits, reste solide"],["ML-KEM (PQC)","résistant","good","Conçu pour résister"]];
+  host.innerHTML=`<div class="ctl"><button class="b pri" id="run">Lancer l'ordinateur quantique</button><button class="b sm" id="rs">Réinitialiser</button></div><div class="impact">${L.map(l=>`<div class="ic"><b>${l[0]}</b><small>${l[1]}</small><span>?</span></div>`).join("")}</div>`;
+  const cards=host.querySelectorAll(".ic");let alive=true;
+  host.querySelector("#run").onclick=async()=>{for(let i=0;i<L.length&&alive;i++){cards[i].classList.add(L[i][2]);cards[i].querySelector("span").textContent=L[i][3];await sleep(550)}};
+  host.querySelector("#rs").onclick=()=>cards.forEach(c=>{c.className="ic";c.querySelector("span").textContent="?"});
+  return()=>{alive=false};
+};
+WIDGETS.mesh=(host)=>{
+  host.innerHTML=`<div class="ctl"><b>Sites à relier : <span id="n">5</span></b></div><input type="range" id="r" min="2" max="14" value="5"><svg viewBox="0 0 300 260" id="sv" style="width:100%;max-width:380px;display:block;margin:6px auto"></svg><div class="rows" style="grid-template-columns:1fr auto"><span>Liens QKD dédiés (N × (N-1) / 2)</span><b id="a" style="color:var(--bad)"></b><span>Mises à jour logicielles PQC (une par site)</span><b id="b" style="color:var(--good)"></b></div>`;
+  const r=host.querySelector("#r"),draw=()=>{const n=+r.value;host.querySelector("#n").textContent=n;const P=[...Array(n)].map((_,i)=>[150+105*Math.cos(i/n*6.2832-1.57),130+105*Math.sin(i/n*6.2832-1.57)]);let h="";
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)h+=`<line class="edge" x1="${P[i][0]}" y1="${P[i][1]}" x2="${P[j][0]}" y2="${P[j][1]}" stroke="var(--bad)" stroke-width="1.2"/>`;
+    h+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="8" fill="var(--accent)"/>`).join("");host.querySelector("#sv").innerHTML=h;
+    host.querySelector("#a").textContent=n*(n-1)/2;host.querySelector("#b").textContent=n};
+  r.oninput=draw;draw();
+};
+const EVENTS=[[1984,"BB84","Bennett et Brassard proposent le premier protocole de QKD."],[1994,"Shor","Peter Shor publie l'algorithme qui menace RSA et ECC."],[2003,"DARPA","DARPA Quantum Network (BBN, Boston) : opérationnel en octobre 2003."],[2008,"SECOQC","Réseau pilote européen à Vienne."],[2010,"Tokyo","Réseau QKD de Tokyo (six systèmes, plusieurs fabricants) ; SwissQuantum à Genève de mars 2009 à janvier 2011."],[2016,"Micius","Lancement du satellite chinois : QKD espace-sol sur plus de 1 000 km."],[2017,"Pékin-Shanghai","Dorsale de 2 032 km avec 32 nœuds de confiance (29 septembre 2017)."],[2024,"NIST PQC","Publication des standards FIPS 203, 204 et 205."]];
+WIDGETS.time=(host,o)=>{
+  host.innerHTML=`<div class="tl">${EVENTS.map((e,i)=>`<div class="ev ${(o.hl||[]).includes(i)?"hl":""}" data-i="${i}"><i></i><b>${e[0]}</b>${e[1]}</div>`).join("")}</div><div class="card" id="dt">Clique un jalon (en jaune : ceux de cette section).</div>`;
+  host.querySelectorAll(".ev").forEach(e=>e.onclick=()=>{host.querySelectorAll(".ev").forEach(x=>x.classList.remove("on"));e.classList.add("on");const v=EVENTS[+e.dataset.i];host.querySelector("#dt").innerHTML=`<b>${v[0]} · ${v[1]}</b><br>${esc(v[2])}`});
+};
+WIDGETS.cards=(host,o)=>{
+  host.innerHTML=`<div class="cardgrid">${o.pairs.map(p=>`<div class="flip"><div><div class="f">${esc(p[0])}</div><div class="bk">${esc(p[1])}</div></div></div>`).join("")}</div><p class="muted" style="margin:8px 0 0">Clique pour retourner.</p>`;
+  host.querySelectorAll(".flip").forEach(f=>f.onclick=()=>f.classList.toggle("on"));
+};
+WIDGETS.cov=(host)=>{
+  const R=[["Échange de clé entre deux points",true,"C'est la seule chose que fait la QKD."],["Chiffrement des données",false,"La clé produite sert ensuite à un algorithme symétrique (AES)."],["Authentification des parties",false,"Elle exige un secret initial ou de la PQC. La QKD ne l'apporte pas."],["Signature numérique",false,"Aucune signature n'est fournie."],["Gestion d'identités / certificats (PKI)",false,"Hors périmètre."],["Passage à l'échelle d'Internet",false,"Point-à-point, matériel dédié."]];
+  host.innerHTML=`<p class="muted" style="margin-top:0">La QKD couvre-t-elle cela ? Devine.</p><div class="cov">${R.map((r,i)=>`<div class="cv" data-i="${i}"><span>${esc(r[0])}</span><button class="b sm" data-v="1">Oui</button><button class="b sm" data-v="0">Non</button><div class="fb"></div></div>`).join("")}</div>`;
+  host.querySelectorAll(".cv").forEach(row=>row.querySelectorAll("button").forEach(b=>b.onclick=()=>{const r=R[+row.dataset.i],good=(b.dataset.v==="1")===r[1];row.classList.add(good?"right":"wrong");row.querySelector(".fb").textContent=(good?"":"")+(r[1]?"Oui. ":"Non. ")+r[2];row.querySelectorAll("button").forEach(x=>x.disabled=true)}));
+};
+
+/* ====================== EXPORT / THÈME ====================== */
+$("#xmenu>button").onclick=e=>{e.stopPropagation();$("#xmenu").classList.toggle("open")};
+document.addEventListener("click",()=>$("#xmenu").classList.remove("open"));
+$("#xmenu").onclick=e=>{const a=e.target.closest("[data-a]")?.dataset.a;if(!a)return;$("#xmenu").classList.remove("open");
+  if(a==="md"){const o=["# QKD : promesses et limites de la sécurité quantique",""];flat.forEach(x=>{o.push("#".repeat(x.d+1)+` ${x.id}. ${x.t}`,"");const t=(S.notes[x.id]||"").trim();if(t)o.push(t,"");
+      (S.nimgs[x.id]||[]).forEach(i=>o.push(`![image](${S.imgs[i]})`,""));const sv=schemaSVG(x.id);if(sv)o.push(`![schéma](data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(sv)))})`,"")});
+    download("QKD-notes.md",o.join("\n"),"text/markdown");toast("Markdown exporté")}
+  if(a==="json"){download("QKD-sauvegarde.json",JSON.stringify(S),"application/json");toast("Sauvegarde exportée")}
+  if(a==="import")$("#fjson").click()};
+$("#fjson").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(typeof d!=="object"||!d.notes)throw 0;S=Object.assign(S,d);save();drawMap();renderHeader();toast("Sauvegarde restaurée")}catch{toast("Fichier invalide")}e.target.value=""};
+$("#theme").onclick=()=>{S.theme=S.theme==="dark"?"light":"dark";applyTheme();save()};
+function applyTheme(){document.documentElement.dataset.theme=S.theme}
+
+function confetti(){}
+function openGloss(){
+  cur=null;if(cleanup){cleanup();cleanup=null}
+  const keys=Object.keys(GLOSS_).filter(k=>!GLOSS_[k].startsWith("Voir ")).sort((a,b)=>a.localeCompare(b,"fr"));
+  $("#panel").style.setProperty("--pc","#000");
+  $("#panel").innerHTML=`<div class="ph"><button class="b sm close" id="x">✕</button><div class="num">Termes clés</div><h2>Glossaire</h2></div><div class="pb"><input id="gsearch" placeholder="Rechercher un terme…"><div id="gl"></div></div>`;
+  const draw=q=>{$("#gl").innerHTML=keys.filter(k=>(k+GLOSS_[k]).toLowerCase().includes(q.toLowerCase())).map(k=>`<div class="gi"><b>${esc(k)}</b><br>${esc(GLOSS_[k])}</div>`).join("")||`<p class="muted">Aucun résultat.</p>`};
+  draw("");$("#gsearch").oninput=e=>draw(e.target.value);$("#x").onclick=closePanel;
+  $("#panel").classList.add("on");$("#veil").classList.add("on");
+}
+$("#gbtn").onclick=openGloss;
+
+/* ====================== DÉMARRAGE ====================== */
+(async()=>{const s=await DB.get("state");if(s)S=Object.assign(S,s);applyTheme();renderHeader();drawMap();navigator.storage?.persist?.()})();
+</script>
+</body>
+</html>
